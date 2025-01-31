@@ -217,6 +217,7 @@
     <ClCompile Include="Physics.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Scene_Menu.cpp" />
+    <ClCompile Include="Scene_Options.cpp" />
     <ClCompile Include="Scene_Planes.cpp" />
     <ClCompile Include="SoundPlayer.cpp" />
     <ClCompile Include="Utilities.cpp" />

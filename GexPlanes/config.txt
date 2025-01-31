@@ -1,7 +1,7 @@
 # Game Config
 
-Window  1024 760
- 
+Window  720 850
+
 Font    Arial      	../assets/fonts/arial.ttf
 Font    main       	../assets/fonts/Sansation.ttf
 Font    Arcade    	../assets/fonts/arcadeclassic.regular.ttf
@@ -12,6 +12,7 @@ Music missionTheme  ../assets/Music/MissionTheme.ogg
 JSON                ../assets/Textures/Entities.json
 
 # Textures
+# Texture Player		../assets/Textures/Player.png
 Texture Entities    ../assets/Textures/Entities.png
 Texture Jungle      ../assets/Textures/Jungle-long.png
 Texture Finish      ../assets/Textures/FinishLine.png
@@ -32,7 +33,8 @@ Sprite finishLine       Finish   0 0  1024 76
 
 #
 #  Animation    Name            Texture     Speed   Repeats
-Animation       EagleStr        Entities    1        yes
+# Animation		Idle			Player		1		 yes
+Animation       EagleStr		Entities    1        yes
 Animation       EagleRgt        Entities    1        yes
 Animation       EagleLft        Entities    1        yes
 Animation       Bullet          Entities    1        yes
