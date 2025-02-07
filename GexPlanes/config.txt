@@ -10,9 +10,10 @@ Music menuTheme     ../assets/Music/MenuTheme.ogg
 Music missionTheme  ../assets/Music/MissionTheme.ogg
 
 JSON                ../assets/Textures/Entities.json
+JSON				../assets/Textures/Player.json
 
 # Textures
-# Texture Player		../assets/Textures/Player.png
+Texture Player		../assets/Textures/Player.png
 Texture Entities    ../assets/Textures/Entities.png
 Texture Jungle      ../assets/Textures/Jungle-long.png
 Texture Finish      ../assets/Textures/FinishLine.png
@@ -33,7 +34,7 @@ Sprite finishLine       Finish   0 0  1024 76
 
 #
 #  Animation    Name            Texture     Speed   Repeats
-# Animation		Idle			Player		1		 yes
+Animation		Idle			Player		1		 yes
 Animation       EagleStr		Entities    1        yes
 Animation       EagleRgt        Entities    1        yes
 Animation       EagleLft        Entities    1        yes

@@ -1,8 +1,6 @@
 #include "Command.h"
 
-Command::Command()
-{
-}
+Command::Command() = default;
 
 Command::Command(const std::string& name, const std::string& type)
 	: m_name(name)
