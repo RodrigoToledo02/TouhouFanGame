@@ -55,7 +55,7 @@ class Scene_Touhou : public Scene
 	sf::FloatRect           getBattlefieldBounds() const;
 	void                    destroyOutsideBattlefieldBounds();
 	void                    spawnEnemyPlanes(SpawnPoint sp);
-	void                    fireBullet();
+
 	void                    spawnBullet(sf::Vector2f pos, bool isEnemy);
 	void	                registerActions();
 	void                    spawnPlayer(sf::Vector2f pos);
@@ -77,4 +77,6 @@ public:
 	void		            update(sf::Time dt) override;
 	void		            sDoAction(const Command& command) override;
 	void		            sRender() override;
+
+	void                    fireBullet();
 };

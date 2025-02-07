@@ -99,7 +99,6 @@ void Scene_Touhou::sDoAction(const Command& command) {
 			_player->getComponent<CInput>().down = true;
 		}
 		else if (command.name() == "LAUNCH") { spawnMisille(); }
-		else if (command.name() == "FIRE") { fireBullet(); }
 		else if (command.name() == "GRAZE") {
 			std::cout << "Holding down shift\n";
 			_player->getComponent<CInput>().lshift = true;
@@ -119,9 +118,6 @@ void Scene_Touhou::sDoAction(const Command& command) {
 		}
 		else if (command.name() == "DOWN") {
 			_player->getComponent<CInput>().down = false;
-		}
-		else if (command.name() == "FIRE") {
-			_player->getComponent<CGun>().isFiring = false;
 		}
 		else if (command.name() == "GRAZE") {
 			std::cout << "Not Holding down shift\n";
@@ -153,7 +149,7 @@ void Scene_Touhou::drawCameraView() {
 		centerOrigin(rect);
 		rect.setPosition(pos);
 		rect.setFillColor(sf::Color(0, 0, 0, 0));
-		rect.setOutlineColor(sf::Color{ 255, 0, 0 });
+		rect.setOutlineColor(sf::Color{ 0, 0, 0 });
 		rect.setOutlineThickness(8.f);
 		_game->window().draw(rect);
 	}
@@ -242,7 +238,6 @@ void Scene_Touhou::registerActions() {
 	registerAction(sf::Keyboard::T, "TOGGLE_TEXTURE");
 	registerAction(sf::Keyboard::V, "TOGGLE_CAMOUTLINE");
 
-	registerAction(sf::Keyboard::Space, "FIRE");
 	registerAction(sf::Keyboard::M, "LAUNCH");
 	registerAction(sf::Keyboard::LShift, "GRAZE");
 
@@ -268,7 +263,7 @@ void Scene_Touhou::spawnPlayer(sf::Vector2f pos) {
 	_player->addComponent<CInput>();
 	_player->addComponent<CHealth>(100);
 	auto& gun = _player->addComponent<CGun>();
-	gun.fireRate = -2.9;
+	gun.fireRate = -2;
 	_player->addComponent<CMissiles>();
 }
 
@@ -310,7 +305,7 @@ void Scene_Touhou::adjustPlayerPosition() {
 	if (_player->getComponent<CState>().state == "dead")
 		return;
 
-	auto center = _worldView.getCenter();
+	auto& center = _worldView.getCenter();
 	sf::Vector2f viewHalfSize = _game->windowSize() / 2.f;
 
 	auto left = center.x - viewHalfSize.x;
@@ -414,7 +409,7 @@ void Scene_Touhou::sCollisions() {
 void Scene_Touhou::sUpdate(sf::Time dt) {
 	SoundPlayer::getInstance().removeStoppedSounds();
 	_entityManager.update();
-	_worldView.move(0.f, _config.scrollSpeed * dt.asSeconds() * -1);
+	_worldView.move(0.f, 0.f);
 
 	sAnimation(dt);
 	sAutoPilot(dt);

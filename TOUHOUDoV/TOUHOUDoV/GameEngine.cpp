@@ -82,6 +82,15 @@ void GameEngine::sUserInput()
 	}
 }
 
+void GameEngine::realTimeInput() {
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+	{
+		if (auto scene = std::dynamic_pointer_cast<Scene_Touhou>(currentScene())) {
+			scene->fireBullet();
+		}
+	}
+}
+
 std::shared_ptr<Scene> GameEngine::currentScene()
 {
 	return _sceneMap.at(_currentScene);
@@ -113,6 +122,7 @@ void GameEngine::run()
 	while (isRunning())
 	{
 		sUserInput();								// get user input
+		realTimeInput();
 
 		timeSinceLastUpdate += clock.restart();
 		while (timeSinceLastUpdate > SPF)

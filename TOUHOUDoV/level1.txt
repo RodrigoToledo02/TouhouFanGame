@@ -1,6 +1,6 @@
 # Level 1
 
-World 1024 5600
+World 1080 1920
 
 ScrollSpeed 75
 PlayerSpeed 250
@@ -9,7 +9,7 @@ BulletSpeed 900
 MissileSpeed 250
 FireInterval 3
 
-Bkg Jungle 0 0
+Bkg Sky 0 0
 Bkg Finish 0 0
 
 #spawn enemies

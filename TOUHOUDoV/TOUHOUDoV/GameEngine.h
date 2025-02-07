@@ -40,6 +40,7 @@ public:
 	void				run();
 	void				quitLevel();
 	void				backLevel();
+	void				realTimeInput();
 	sf::RenderWindow& window();
 	sf::Vector2f		windowSize() const;
 	bool				isRunning();
