@@ -156,7 +156,7 @@ sf::Vector2f GameEngine::windowSize() const {
 	return sf::Vector2f{ _window.getSize() };
 }
 
-bool GameEngine::isRunning()
+bool GameEngine::isRunning() const
 {
 	return (_running && _window.isOpen());
 }

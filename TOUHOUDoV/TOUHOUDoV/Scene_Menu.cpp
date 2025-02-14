@@ -54,8 +54,10 @@ void Scene_Menu::sRender()
 	view.setCenter(windowSize.x / 2.f, windowSize.y / 2.f);
 	_game->window().setView(view);
 
-	static const sf::Color selectedColor(255, 255, 255);
-	static const sf::Color normalColor(0, 0, 0);
+	_game->window().clear(sf::Color(0, 0, 0));
+
+	static const sf::Color selectedColor(150, 150, 150);
+	static const sf::Color normalColor(255, 255, 255);
 
 	const unsigned int minFontSize = 32;
 	const unsigned int maxFontSize = 64;
@@ -63,7 +65,7 @@ void Scene_Menu::sRender()
 	unsigned int fontSize = std::max(minFontSize, std::min(maxFontSize, windowSize.y / 15));
 	m_menuText.setCharacterSize(fontSize);
 
-	static const sf::Color backgroundColor(100, 100, 255);
+	static const sf::Color backgroundColor(0, 0, 0);
 
 	m_menuText.setFillColor(normalColor);
 	m_menuText.setString(m_title);

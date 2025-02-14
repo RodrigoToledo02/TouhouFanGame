@@ -9,12 +9,14 @@ BulletSpeed 900
 MissileSpeed 250
 FireInterval 3
 
-Bkg Sky 0 0
+Bkg Black 0 0
 Bkg Finish 0 0
+Bkg1 White 0 0
 
 #spawn enemies
 Spawn Avenger 200
 Spawn Raptor  600
+Spawn Boss 500
 Spawn Avenger 800
 Spawn Raptor  1100
 Spawn Avenger 1200

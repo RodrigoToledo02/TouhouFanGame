@@ -1,9 +1,9 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-//  Assignment:
+//  Assignment:		Game Project - Touhou: Darkness of the Void
 //  Instructor:     David Burchill
 //  Year / Term:    Winter 2025
-//  File name:      Source.cpp
+//  File name:      main.cpp
 //
 //  Student name:   Rodrigo Toledo
 //  Student email:  rtoledocastillo01@mynbcc.ca / rodri_toledo32@outlook.com

@@ -100,8 +100,11 @@ void Scene_Touhou::sDoAction(const Command& command) {
 		}
 		else if (command.name() == "LAUNCH") { spawnMisille(); }
 		else if (command.name() == "GRAZE") {
-			std::cout << "Holding down shift\n";
-			_player->getComponent<CInput>().lshift = true;
+			std::cout << "SHIFT IS BEING PRESSED!\N";
+			playerSize(true);
+		}
+		else if (command.name() == "SWITCH") {
+			backgroundToggle = !backgroundToggle;
 		}
 	}
 	// on Key Release
@@ -120,15 +123,27 @@ void Scene_Touhou::sDoAction(const Command& command) {
 			_player->getComponent<CInput>().down = false;
 		}
 		else if (command.name() == "GRAZE") {
-			std::cout << "Not Holding down shift\n";
-			_player->getComponent<CInput>().lshift = false;
+			std::cout << "Shift is NOT being pressed!\N";
+			playerSize(false);
 		}
 	}
 }
 
+void Scene_Touhou::playerSize(bool set) {
+	auto& bb = _player->getComponent<CBoundingBox>();
+	bb.isSmall = set;
+}
+
+void Scene_Touhou::playerSizeIncrease() {
+	auto& bb = _player->getComponent<CBoundingBox>();
+	bb.size *= 2.f;
+	_player->addComponent<CBoundingBox>(bb);
+}
+
 void Scene_Touhou::drawAABB(std::shared_ptr<Entity> e) {
 	if (_drawAABB) {
-		auto& box = e->getComponent<CBoundingBox>();
+		auto box = e->getComponent<CBoundingBox>();
+		if (box.isSmall) box.size *= .5f;
 		sf::RectangleShape rect;
 		rect.setSize(sf::Vector2f{ box.size.x, box.size.y });
 		centerOrigin(rect);
@@ -201,15 +216,25 @@ void Scene_Touhou::sRender() {
 	_game->window().setView(_worldView);
 
 	// draw bkg first
-	for (auto e : _entityManager.getEntities("bkg")) {
-		if (e->getComponent<CSprite>().has) {
-			auto& sprite = e->getComponent<CSprite>().sprite;
-			_game->window().draw(sprite);
+	if (backgroundToggle) {
+		for (auto& e : _entityManager.getEntities("bkg")) {
+			if (e->getComponent<CSprite>().has) {
+				auto& sprite = e->getComponent<CSprite>().sprite;
+				_game->window().draw(sprite);
+			}
+		}
+	}
+	else {
+		for (auto& e : _entityManager.getEntities("bkg1")) {
+			if (e->getComponent<CSprite>().has) {
+				auto& sprite = e->getComponent<CSprite>().sprite;
+				_game->window().draw(sprite);
+			}
 		}
 	}
 
 	// draw pickups
-	for (auto e : _entityManager.getEntities("Pickup")) {
+	for (auto& e : _entityManager.getEntities("Pickup")) {
 		drawEntt(e);
 		drawAABB(e);
 	}
@@ -240,6 +265,7 @@ void Scene_Touhou::registerActions() {
 
 	registerAction(sf::Keyboard::M, "LAUNCH");
 	registerAction(sf::Keyboard::LShift, "GRAZE");
+	registerAction(sf::Keyboard::N, "SWITCH");
 
 	registerAction(sf::Keyboard::A, "LEFT");
 	registerAction(sf::Keyboard::Left, "LEFT");
@@ -256,7 +282,9 @@ void Scene_Touhou::spawnPlayer(sf::Vector2f pos) {
 	_player->addComponent<CTransform>(pos);
 
 	auto bb = _player->addComponent<CAnimation>(Assets::getInstance()
-		.getAnimation("EagleStr")).animation.getBB();
+		.getAnimation("Idle")).animation.getBB();
+	_player->addComponent<CBoundingBox>(bb);
+	bb = _player->getComponent<CBoundingBox>().halfSize;
 	_player->addComponent<CBoundingBox>(bb);
 
 	_player->addComponent<CState>("straight");
@@ -342,6 +370,15 @@ void Scene_Touhou::loadLevel(const std::string& path) {
 
 			// for background, no textureRect its just the whole texture
 			// and no center origin, position by top left corner
+			auto& sprite = e->addComponent<CSprite>(Assets::getInstance().getTexture(name)).sprite;
+			sprite.setOrigin(0.f, 0.f);
+			sprite.setPosition(pos);
+		}
+		else if (token == "Bkg1") {
+			std::string name;
+			sf::Vector2f pos;
+			config >> name >> pos.x >> pos.y;
+			auto e = _entityManager.addEntity("bkg1");
 			auto& sprite = e->addComponent<CSprite>(Assets::getInstance().getTexture(name)).sprite;
 			sprite.setOrigin(0.f, 0.f);
 			sprite.setPosition(pos);
@@ -520,9 +557,26 @@ void Scene_Touhou::sSpawnEnemies() {
 	auto spawnLine = _worldView.getCenter().y - _game->window().getSize().y;
 
 	while (!_spawnPoints.empty() && _spawnPoints.top().y > spawnLine) {
+		spawnBoss(_spawnPoints.top());
 		spawnEnemyPlanes(_spawnPoints.top());
 		_spawnPoints.pop();
 	}
+}
+
+void Scene_Touhou::spawnBoss(SpawnPoint sp) {
+	sf::Vector2f pos{ 500.f, sp.y };
+	auto bossEnemy = _entityManager.addEntity("bossEnemy");
+	auto& tfm = bossEnemy->addComponent<CTransform>(pos, sf::Vector2f{ 0.f, _config.enemySpeed });
+
+	if (sp.type == "Boss")
+		bossEnemy->addComponent<CGun>();
+
+	auto bb = bossEnemy->
+		addComponent<CAnimation>(Assets::getInstance().getAnimation(sp.type)).animation.getBB();
+
+	bossEnemy->addComponent<CBoundingBox>(bb);
+	bossEnemy->addComponent<CHealth>(50000);
+	bossEnemy->addComponent<CAutoPilot>();
 }
 
 void Scene_Touhou::spawnEnemyPlanes(SpawnPoint sp) {
@@ -594,7 +648,7 @@ void Scene_Touhou::destroyOutsideBattlefieldBounds() {
 sf::Vector2f Scene_Touhou::findClosestEnemy(sf::Vector2f mPos) {
 	float closest = std::numeric_limits<float>::max();
 	sf::Vector2f posClosest{ 0.f, 0.f };
-	for (auto e : _entityManager.getEntities("enemy")) {
+	for (auto& e : _entityManager.getEntities("enemy")) {
 		if (e->getComponent<CTransform>().has) {
 			auto ePos = e->getComponent<CTransform>().pos;
 			float distToEnemy = dist(mPos, ePos);
@@ -625,7 +679,7 @@ void Scene_Touhou::checkPickupCollision() {
 	for (auto e : _entityManager.getEntities("Pickup")) {
 		// player collids with pickup;
 		auto overlap = Physics::getOverlap(_player, e);
-		if (overlap.x > 0 and overlap.y > 0) {
+		if (overlap.x > 0 && overlap.y > 0) {
 			auto pickupType = e->getComponent<CState>().state;
 			if (pickupType == "HealthRefill") _player->getComponent<CHealth>().hp += 50;
 			if (pickupType == "FireRate") {
@@ -648,7 +702,7 @@ void Scene_Touhou::checkPlaneCollision() {
 	for (auto e : _entityManager.getEntities("enemy")) {
 		// planes have collided
 		auto overlap = Physics::getOverlap(_player, e);
-		if (overlap.x > 0 and overlap.y > 0) {
+		if (overlap.x > 0 && overlap.y > 0) {
 			auto& pHP = _player->getComponent<CHealth>().hp;
 			auto& eHP = e->getComponent<CHealth>().hp;
 
@@ -666,10 +720,10 @@ void Scene_Touhou::checkPlaneCollision() {
 
 void Scene_Touhou::checkBulletCollision() {
 	// Player Bullets
-	for (auto bullet : _entityManager.getEntities("PlayerBullet")) {
-		for (auto e : _entityManager.getEntities("enemy")) {
+	for (auto& bullet : _entityManager.getEntities("PlayerBullet")) {
+		for (auto& e : _entityManager.getEntities("enemy")) {
 			auto overlap = Physics::getOverlap(bullet, e);
-			if (overlap.x > 0 and overlap.y > 0) {
+			if (overlap.x > 0 && overlap.y > 0) {
 				e->getComponent<CHealth>().hp -= 10;
 				bullet->destroy();
 				checkIfDead(e);
@@ -678,9 +732,10 @@ void Scene_Touhou::checkBulletCollision() {
 	}
 
 	// Enemy Bullets
-	for (auto bullet : _entityManager.getEntities("enemyBullet")) {
+	for (auto& bullet : _entityManager.getEntities("enemyBullet")) {
 		auto overlap = Physics::getOverlap(_player, bullet);
-		if (overlap.x > 0 and overlap.y > 0) {
+		if (overlap.x > 0 && overlap.y > 0) {
+			auto& pHP = _player->getComponent<CHealth>().hp;
 			_player->getComponent<CHealth>().hp -= 10;
 			bullet->destroy();
 			checkIfDead(_player);
@@ -690,7 +745,7 @@ void Scene_Touhou::checkBulletCollision() {
 
 void Scene_Touhou::checkMissileCollision() {
 	// Player Missile collision
-	for (auto m : _entityManager.getEntities("missile")) {
+	for (auto& m : _entityManager.getEntities("missile")) {
 		for (auto& e : _entityManager.getEntities("enemy")) {
 			auto overlap = Physics::getOverlap(m, e);
 			if (overlap.x > 0 && overlap.y > 0) {
@@ -708,7 +763,7 @@ void Scene_Touhou::startAnimation(sPtrEntt e, std::string animation) {
 void Scene_Touhou::checkIfDead(sPtrEntt e) {
 	std::uniform_int_distribution<int> flip(1, 2);
 
-	// when plane entitie dies run an explosion animation before destroying the entity
+	// when plane entities dies run an explosion animation before destroying the entity
 	if (e->hasComponent<CHealth>()) {
 		if (e->getComponent<CHealth>().hp <= 0) {
 			e->addComponent<CAnimation>(Assets::getInstance().getAnimation("explosion"));

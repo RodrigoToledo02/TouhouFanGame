@@ -41,7 +41,7 @@ struct CGun : public Component {
 	bool isFiring{ false };
 	sf::Time countdown{ sf::Time::Zero };
 	int fireRate{ 1 };
-	int spreadLevel{ 1 };
+	int spreadLevel{ 2 };
 
 	CGun() = default;
 };
@@ -92,6 +92,7 @@ struct CBoundingBox : public Component
 {
 	sf::Vector2f size{ 0.f, 0.f };
 	sf::Vector2f halfSize{ 0.f, 0.f };
+	bool isSmall{ false };
 
 	CBoundingBox() = default;
 	explicit CBoundingBox(const sf::Vector2f& s) : size(s), halfSize(0.5f * s)

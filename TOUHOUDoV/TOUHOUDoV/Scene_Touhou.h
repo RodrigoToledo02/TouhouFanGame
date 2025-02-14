@@ -31,10 +31,12 @@ class Scene_Touhou : public Scene
 	bool                                _drawTextures{ true };
 	bool                                _drawAABB{ false };
 	bool                                _drawCam{ false };
+	bool								backgroundToggle{ true };
 
 	//systems
 	void                    sMovement(sf::Time dt);
 	void                    sSpawnEnemies();
+
 	void                    sCollisions();
 	void                    sUpdate(sf::Time dt);
 	void                    sGunUpdate(sf::Time dt);
@@ -55,6 +57,7 @@ class Scene_Touhou : public Scene
 	sf::FloatRect           getBattlefieldBounds() const;
 	void                    destroyOutsideBattlefieldBounds();
 	void                    spawnEnemyPlanes(SpawnPoint sp);
+	void					spawnBoss(SpawnPoint sp);
 
 	void                    spawnBullet(sf::Vector2f pos, bool isEnemy);
 	void	                registerActions();
@@ -68,14 +71,19 @@ class Scene_Touhou : public Scene
 	void	                onEnd() override;
 	void                    drawAABB(std::shared_ptr<Entity> e);
 	void                    drawCameraView();
+	void					changeBackground();
 	void                    drawHP(sPtrEntt e);
 	void                    drawAmmo(sPtrEntt e);
 	void                    drawEntt(sPtrEntt e);
+	void					playerSize(bool smaller);
+
+	void					playerSizeIncrease();
 
 public:
 	Scene_Touhou(GameEngine* gameEngine, const std::string& levelPath);
 	void		            update(sf::Time dt) override;
 	void		            sDoAction(const Command& command) override;
+
 	void		            sRender() override;
 
 	void                    fireBullet();

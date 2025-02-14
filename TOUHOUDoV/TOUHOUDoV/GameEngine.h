@@ -43,7 +43,7 @@ public:
 	void				realTimeInput();
 	sf::RenderWindow& window();
 	sf::Vector2f		windowSize() const;
-	bool				isRunning();
+	bool				isRunning() const;
 	void				loadConfigFromFile(const std::string& path,
 		unsigned int& width, unsigned int& height) const;
 };
