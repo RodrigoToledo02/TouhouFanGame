@@ -6,6 +6,8 @@ Font    Arial      	../assets/fonts/arial.ttf
 Font    main       	../assets/fonts/Sansation.ttf
 Font    Arcade    	../assets/fonts/arcadeclassic.regular.ttf
 
+Music TouhouMenu    ../assets/Music/Touhou_Sumizome-YFintrocut_loop.ogg
+Music TouhouTheme   ../assets/Music/Touhou_Luna-dial_YouFulca_loop.ogg
 Music menuTheme     ../assets/Music/MenuTheme.ogg
 Music missionTheme  ../assets/Music/MissionTheme.ogg
 
@@ -30,6 +32,7 @@ Sound EnemyGunfire  ../assets/Sounds/EnemyGunfire.wav
 Sound Explosion1    ../assets/Sounds/Explosion1.wav
 Sound Explosion2    ../assets/Sounds/Explosion2.wav
 Sound LaunchMissile ../assets/Sounds/LaunchMissile.wav
+Sound Damage01      ../assets/Sounds/se_damage01.wav
 
 # Sprites
 Sprite background       White    0 0  1000 2000

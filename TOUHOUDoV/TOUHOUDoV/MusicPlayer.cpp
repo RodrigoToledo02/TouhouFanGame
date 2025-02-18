@@ -6,8 +6,8 @@
 #include <stdexcept>
 
 MusicPlayer::MusicPlayer() {
-	m_filenames["menuTheme"] = "../assets/Music/MenuTheme.ogg";
-	m_filenames["gameTheme"] = "../assets/Music/MissionTheme.ogg";
+	m_filenames["menuTheme"] = "../assets/Music/Touhou_Sumizome-YFintrocut_loop.ogg";
+	m_filenames["gameTheme"] = "../assets/Music/Touhou_Luna-dial_YouFulca_loop.ogg";
 }
 
 void MusicPlayer::addSong(const std::string& name, const std::string& path) {

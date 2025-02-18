@@ -11,6 +11,11 @@
 #include <fstream>
 #include <iostream>
 
+bool firstTimePassing1200 = true;
+bool amountOfBullets = false;
+bool shooting = false;
+bool isSpread4 = false;
+
 namespace {
 	std::random_device rd;
 	std::mt19937 rng(rd());
@@ -29,6 +34,7 @@ namespace {
 	};
 }
 
+std::string _levelPath;
 float getRandomFloat(float min, float max) {
 	std::uniform_real_distribution<float> dis(min, max);
 	return dis(rng);
@@ -50,7 +56,7 @@ void Scene_Touhou::init(const std::string& levelPath) {
 	spawnPlayer(spawnPos);
 
 	MusicPlayer::getInstance().play("gameTheme");
-	MusicPlayer::getInstance().setVolume(5);
+	MusicPlayer::getInstance().setVolume(15);
 }
 
 void Scene_Touhou::update(sf::Time dt) {
@@ -351,6 +357,7 @@ void Scene_Touhou::adjustPlayerPosition() {
 
 void Scene_Touhou::loadLevel(const std::string& path) {
 	std::ifstream config(path);
+	_levelPath = path;
 	if (config.fail()) {
 		std::cerr << "Open file " << path << " failed\n";
 		config.close();
@@ -419,47 +426,58 @@ void Scene_Touhou::loadLevel(const std::string& path) {
 
 	config.close();
 }
-bool firstTimePassing1200 = true;
-bool amountOfBullets = false;
 
 void Scene_Touhou::sMovement(sf::Time dt) {
 	bool bossHasPassed1200 = false;
-	static int destroyedBulletCount = 0;
+	int bossSpreadLevel = 1;
 
 	playerMovement();
 	animatePlayer();
+
+	for (auto e : _entityManager.getEntities()) {
+		if (e->getTag() == "bossEnemy" && e->hasComponent<CGun>()) {
+			bossSpreadLevel = e->getComponent<CGun>().spreadLevel;
+			break;
+		}
+	}
 
 	// move all objects
 	for (auto e : _entityManager.getEntities()) {
 		if (e->hasComponent<CTransform>()) {
 			auto& tfm = e->getComponent<CTransform>();
-			auto gun = e->getComponent<CGun>();
+
 			auto boss = e->getTag() == "bossEnemy";
 			auto bullet = e->getTag() == "EnemyBullet";
+
 			if (bullet)
 			{
-				if (gun.spreadLevel = 4)
-				{
-					std::cout << _entityManager.getEntities("EnemyBullet").size() << "\n";
-					if (_entityManager.getEntities("EnemyBullet").size() <= 20)
+				if (bossSpreadLevel == 4) {
+					int bulletCount = _entityManager.getEntities("EnemyBullet").size();
+					if (bulletCount <= 20)
 					{
 						tfm.vel.y = 0;
 						tfm.pos.y += tfm.vel.y * dt.asSeconds();
 						tfm.angle += (tfm.angVel += 10) * dt.asSeconds();
 					}
-					else if (_entityManager.getEntities("EnemyBullet").size() >= 21)
+					else
 					{
-						//std::cout << _entityManager.getEntities("EnemyBullet").size() << "\n";
-						//std::cout << "Function 2 dwawdadwad!\n";
-						tfm.vel.y = 100.f;
+						tfm.vel.y = 200.f;
 						tfm.pos.y += tfm.vel.y * dt.asSeconds();
 						tfm.angle += (tfm.angVel += 10) * dt.asSeconds();
 					}
 				}
+				else if (bossSpreadLevel == 3) {
+					tfm.pos.y += (tfm.vel.y * 0.5) * dt.asSeconds();
+					tfm.angle += (tfm.angVel += 10) * dt.asSeconds();
+				}
+				else if (bossSpreadLevel == 2) {
+					tfm.pos.y += (tfm.vel.y * 0.5) * dt.asSeconds();
+					tfm.angle += (tfm.angVel += 10) * dt.asSeconds();
+				}
 				else
 				{
-					tfm.pos += tfm.vel * dt.asSeconds();
-					tfm.angle += tfm.angVel * dt.asSeconds();
+					tfm.pos.y += (tfm.vel.y * 0.7) * dt.asSeconds();
+					tfm.angle += (tfm.angVel += 10) * dt.asSeconds();
 				}
 			}
 			else if (boss)
@@ -525,6 +543,11 @@ void Scene_Touhou::sUpdate(sf::Time dt) {
 
 void Scene_Touhou::onEnd() {
 	_game->changeScene("MENU", nullptr, false);
+	firstTimePassing1200 = true;
+	amountOfBullets = false;
+	shooting = false;
+	isSpread4 = false;
+	restartGame(_levelPath);
 }
 
 void Scene_Touhou::spawnMisille() {
@@ -566,14 +589,17 @@ void Scene_Touhou::sGunUpdate(sf::Time dt) {
 			auto& gun = e->getComponent<CGun>();
 			gun.countdown -= dt;
 
-			spreadChangeTimer -= dt;
-			if (isBossEnemy && spreadChangeTimer <= sf::Time::Zero) {
-				// Randomly set the spread level (1 to 4)
-				gun.spreadLevel = 1 + (std::rand() % 4);
-				std::cout << "New spread level: " << gun.spreadLevel << "\n";
+			if (isBossEnemy && e->hasComponent<CHealth>()) {
+				int bossCurrentHP = e->getComponent<CHealth>().hp;
 
-				// Reset the spread change timer with a random interval (5 to 10 seconds)
-				spreadChangeTimer = sf::seconds(5.f + (std::rand() % 6));
+				static int lastCheckedHP = bossCurrentHP;
+
+				if ((lastCheckedHP - bossCurrentHP) >= 10000) {
+					gun.spreadLevel = 1 + (std::rand() % 4);
+					std::cout << "New spread level: " << gun.spreadLevel << "\n";
+
+					lastCheckedHP = bossCurrentHP;
+				}
 			}
 
 			if (isEnemy || isBossEnemy)
@@ -588,25 +614,69 @@ void Scene_Touhou::sGunUpdate(sf::Time dt) {
 
 				auto pos = e->getComponent<CTransform>().pos;
 				switch (gun.spreadLevel) {
-				case 1:
-					spawnBullet(pos + sf::Vector2f(0.f, isBossEnemy ? 35.f : -35.f), isBossEnemy);
-					break;
-
-				case 2:
+				case 0:
 					spawnBullet(pos + sf::Vector2f(-20.f, 0.f), isBossEnemy);
 					spawnBullet(pos + sf::Vector2f(20.f, 0.f), isBossEnemy);
 					break;
+				case 1:
+					gun.fireRate = 1.5;
+					for (int i = -5; i <= 5; ++i) {  // This creates 5 lines
+						for (int j = 0; j < 10; ++j) {  // 20 bullets per line
+							spawnBullet(pos + sf::Vector2f(i * 100.f, -700.f + j * 50.f), isBossEnemy);
+						}
+					}
+					break;
+
+				case 2:
+				{
+					float circleRadius = 50.f;
+					int bulletsPerCircle = 10;
+					float angleStep = 360.f / bulletsPerCircle; // Angle between each bullet
+
+					// Positions for the 3 circles in a triangular shape
+					sf::Vector2f circleOffsets[3] = {
+						sf::Vector2f(0.f, 100.f), // top circle
+						sf::Vector2f(-150.f, -100.f),  // bottom right circle
+						sf::Vector2f(150.f, -100.f)  // bottom left circle
+					};
+
+					// Loop through each circle and spawn bullets in a circular pattern
+					for (int i = 0; i < 3; ++i) {
+						sf::Vector2f circleCenter = pos + circleOffsets[i];
+
+						// Spawn 10 bullets per circle
+						for (int j = 0; j < bulletsPerCircle; ++j) {
+							float angle = j * angleStep;  // Angle for each bullet
+							sf::Vector2f bulletPos = circleCenter + sf::Vector2f(
+								std::cos(degToRad(angle)) * circleRadius,  // X offset for the bullet
+								std::sin(degToRad(angle)) * circleRadius   // Y offset for the bullet
+							);
+
+							spawnBullet(bulletPos, isBossEnemy);
+						}
+					}
+				}
+				break;
 
 				case 3:
 					spawnBullet(pos + sf::Vector2f(0.f, 35.f), isBossEnemy);
 					spawnBullet(pos + sf::Vector2f(20.f, 0.f), isBossEnemy);
 					spawnBullet(pos + sf::Vector2f(-20.f, 0.f), isBossEnemy);
 
+					for (int i = 1; i <= 5; ++i) {
+						spawnBullet(pos + sf::Vector2f(-20.f - (i * 50.f), -i * 50.f), isBossEnemy);
+					}
+
+					for (int i = 1; i <= 5; ++i) {
+						spawnBullet(pos + sf::Vector2f(20.f + (i * 50.f), -i * 50.f), isBossEnemy);
+					}
+
 					break;
 				case 4:
 				{
+					isSpread4 = true;
 					if (_entityManager.getEntities("EnemyBullet").size() <= 20) {
-						gun.fireRate = 1;
+						gun.fireRate = 2;
 						// Semi - circle
 						const int numBullets = 10;
 
@@ -625,6 +695,7 @@ void Scene_Touhou::sGunUpdate(sf::Time dt) {
 						}
 					}
 					else {
+						isSpread4 = false;
 						gun.isFiring = false;
 					}
 					break;
@@ -647,7 +718,7 @@ void Scene_Touhou::spawnBullet(sf::Vector2f pos, bool isEnemy) {
 	}
 	else {
 		speed = -_config.bulletSpeed;
-		SoundPlayer::getInstance().play("AlliedGunfire", pos);
+		SoundPlayer::getInstance().play("Damage01", pos);
 	}
 
 	auto bullet = _entityManager.addEntity(isEnemy ? "EnemyBullet" : "PlayerBullet");
@@ -900,8 +971,23 @@ void Scene_Touhou::checkIfDead(sPtrEntt e) {
 
 			if (e->getTag() == "enemy")
 				dropPickup(e->getComponent<CTransform>().pos);
+			if (e->getTag() == "player") {
+				restartGame(_levelPath);
+			}
 		}
 	}
+}
+
+void Scene_Touhou::restartGame(const std::string& levelPath) {
+	for (auto& e : _entityManager.getEntities()) {
+		e->destroy();
+	}
+	_entityManager.update();
+	firstTimePassing1200 = true;
+	amountOfBullets = false;
+	shooting = false;
+	isSpread4 = false;
+	init(levelPath);
 }
 
 void Scene_Touhou::dropPickup(sf::Vector2f pos) {

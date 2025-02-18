@@ -49,6 +49,7 @@ class Scene_Touhou : public Scene
 	void                    dropPickup(sf::Vector2f pos);
 	void                    startAnimation(sPtrEntt e, std::string animation);
 	void                    checkIfDead(sPtrEntt e);
+	void					restartGame(const std::string& path);
 	void                    checkMissileCollision();
 	void                    checkBulletCollision();
 	void                    checkPlaneCollision();

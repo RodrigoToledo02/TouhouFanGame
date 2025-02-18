@@ -49,7 +49,7 @@ struct CGun : public Component {
 	bool isFiring{ false };
 	sf::Time countdown{ sf::Time::Zero };
 	int fireRate{ 1 };
-	int spreadLevel{ 2 };
+	int spreadLevel{ 0 };
 
 	CGun() = default;
 };
