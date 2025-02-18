@@ -77,8 +77,6 @@ class Scene_Touhou : public Scene
 	void                    drawEntt(sPtrEntt e);
 	void					playerSize(bool smaller);
 
-	void					playerSizeIncrease();
-
 public:
 	Scene_Touhou(GameEngine* gameEngine, const std::string& levelPath);
 	void		            update(sf::Time dt) override;

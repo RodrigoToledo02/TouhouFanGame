@@ -16,6 +16,14 @@ struct Component
 	Component() = default;
 };
 
+struct CSpawnPosition : public Component {
+	sf::Vector2f initialPos;
+
+	CSpawnPosition() = default;
+
+	explicit CSpawnPosition(sf::Vector2f pos) : initialPos(pos) {}
+};
+
 struct CAnimation : public Component {
 	Animation   animation;
 

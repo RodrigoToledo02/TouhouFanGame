@@ -12,6 +12,7 @@ sf::Vector2f Physics::getOverlap(std::shared_ptr<Entity> a, std::shared_ptr<Enti
 	auto btx = b->getComponent<CTransform>();
 	auto bbb = b->getComponent<CBoundingBox>();
 
+	// Player hitbox change
 	if (abb.isSmall) abb.size *= 0.5f;
 	if (bbb.isSmall) bbb.size *= 0.5f;
 

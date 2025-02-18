@@ -22,14 +22,6 @@ EntityVec& EntityManager::getEntities(const std::string& tag) {
 }
 
 void EntityManager::update() {
-	// dgb to remove later
-	std::for_each(_entities.begin(), _entities.end(), [](auto e) {
-		if (!(e->isActive())) {
-			std::cout << "Destroying entity " << e->getTag() << std::endl;
-		}
-		});
-	// dgb_end
-
 	// Remove dead entities
 	removeDeadEntities(_entities);
 	for (auto& [_, entityVec] : _entityMap)

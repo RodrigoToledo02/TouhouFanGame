@@ -29,6 +29,11 @@ namespace {
 	};
 }
 
+float getRandomFloat(float min, float max) {
+	std::uniform_real_distribution<float> dis(min, max);
+	return dis(rng);
+}
+
 Scene_Touhou::Scene_Touhou(GameEngine* gameEngine, const std::string& levelPath)
 	: Scene(gameEngine), _worldView(gameEngine->window().getDefaultView()) {
 	init(levelPath);
@@ -100,8 +105,8 @@ void Scene_Touhou::sDoAction(const Command& command) {
 		}
 		else if (command.name() == "LAUNCH") { spawnMisille(); }
 		else if (command.name() == "GRAZE") {
-			std::cout << "SHIFT IS BEING PRESSED!\N";
 			playerSize(true);
+			_player->getComponent<CInput>().lshift = true;
 		}
 		else if (command.name() == "SWITCH") {
 			backgroundToggle = !backgroundToggle;
@@ -123,8 +128,8 @@ void Scene_Touhou::sDoAction(const Command& command) {
 			_player->getComponent<CInput>().down = false;
 		}
 		else if (command.name() == "GRAZE") {
-			std::cout << "Shift is NOT being pressed!\N";
 			playerSize(false);
+			_player->getComponent<CInput>().lshift = false;
 		}
 	}
 }
@@ -132,12 +137,6 @@ void Scene_Touhou::sDoAction(const Command& command) {
 void Scene_Touhou::playerSize(bool set) {
 	auto& bb = _player->getComponent<CBoundingBox>();
 	bb.isSmall = set;
-}
-
-void Scene_Touhou::playerSizeIncrease() {
-	auto& bb = _player->getComponent<CBoundingBox>();
-	bb.size *= 2.f;
-	_player->addComponent<CBoundingBox>(bb);
 }
 
 void Scene_Touhou::drawAABB(std::shared_ptr<Entity> e) {
@@ -292,7 +291,6 @@ void Scene_Touhou::spawnPlayer(sf::Vector2f pos) {
 	_player->addComponent<CHealth>(100);
 	auto& gun = _player->addComponent<CGun>();
 	gun.fireRate = -2;
-	_player->addComponent<CMissiles>();
 }
 
 void Scene_Touhou::playerMovement() {
@@ -421,8 +419,13 @@ void Scene_Touhou::loadLevel(const std::string& path) {
 
 	config.close();
 }
+bool firstTimePassing1200 = true;
+bool amountOfBullets = false;
 
 void Scene_Touhou::sMovement(sf::Time dt) {
+	bool bossHasPassed1200 = false;
+	static int destroyedBulletCount = 0;
+
 	playerMovement();
 	animatePlayer();
 
@@ -430,8 +433,69 @@ void Scene_Touhou::sMovement(sf::Time dt) {
 	for (auto e : _entityManager.getEntities()) {
 		if (e->hasComponent<CTransform>()) {
 			auto& tfm = e->getComponent<CTransform>();
-			tfm.pos += tfm.vel * dt.asSeconds();
-			tfm.angle += tfm.angVel * dt.asSeconds();
+			auto gun = e->getComponent<CGun>();
+			auto boss = e->getTag() == "bossEnemy";
+			auto bullet = e->getTag() == "EnemyBullet";
+			if (bullet)
+			{
+				if (gun.spreadLevel = 4)
+				{
+					std::cout << _entityManager.getEntities("EnemyBullet").size() << "\n";
+					if (_entityManager.getEntities("EnemyBullet").size() <= 20)
+					{
+						tfm.vel.y = 0;
+						tfm.pos.y += tfm.vel.y * dt.asSeconds();
+						tfm.angle += (tfm.angVel += 10) * dt.asSeconds();
+					}
+					else if (_entityManager.getEntities("EnemyBullet").size() >= 21)
+					{
+						//std::cout << _entityManager.getEntities("EnemyBullet").size() << "\n";
+						//std::cout << "Function 2 dwawdadwad!\n";
+						tfm.vel.y = 100.f;
+						tfm.pos.y += tfm.vel.y * dt.asSeconds();
+						tfm.angle += (tfm.angVel += 10) * dt.asSeconds();
+					}
+				}
+				else
+				{
+					tfm.pos += tfm.vel * dt.asSeconds();
+					tfm.angle += tfm.angVel * dt.asSeconds();
+				}
+			}
+			else if (boss)
+			{
+				if (tfm.pos.y < 1100.f && !bossHasPassed1200) {
+					tfm.pos += tfm.vel * dt.asSeconds();
+					tfm.angle += tfm.angVel * dt.asSeconds();
+				}
+				else if (!bossHasPassed1200) {
+					bossHasPassed1200 = true;
+					if (firstTimePassing1200) {
+						e->addComponent<CGun>();
+						tfm.vel.x += 25.f;
+						firstTimePassing1200 = false;
+					}
+					const auto updatedX = tfm.vel.x + 25.f;
+					tfm.pos.y += tfm.vel.y * dt.asSeconds();
+					tfm.pos.x += tfm.vel.x * dt.asSeconds();
+					tfm.angle += tfm.angVel * dt.asSeconds();
+
+					if (tfm.pos.x < 100.f || tfm.pos.x > 650.f) {
+						tfm.vel.x = -tfm.vel.x;
+					}
+					if (tfm.pos.y < 1100.f || tfm.pos.y > 1300.f) {
+						tfm.vel.y = -tfm.vel.y;
+					}
+
+					// Clamp to ensure boss stays within range
+					tfm.pos.x = std::clamp(tfm.pos.x, 100.f, 650.f);
+					tfm.pos.y = std::clamp(tfm.pos.y, 1100.f, 1300.f);
+				}
+			}
+			else {
+				tfm.pos += tfm.vel * dt.asSeconds();
+				tfm.angle += tfm.angVel * dt.asSeconds();
+			}
 		}
 	}
 }
@@ -492,13 +556,27 @@ void Scene_Touhou::fireBullet() {
 }
 
 void Scene_Touhou::sGunUpdate(sf::Time dt) {
+	static sf::Time spreadChangeTimer = sf::seconds(5.f + (std::rand() % 6));
 	for (auto e : _entityManager.getEntities()) {
-		if (e->hasComponent<CGun>()) {
+		auto bullet = e->getTag() == "EnemyBullet";
+		if (e->hasComponent<CGun>() && e->hasComponent<CTransform>()) {
 			bool isEnemy = (e->getTag() == "enemy");
+			bool isBossEnemy = (e->getTag() == "bossEnemy");
+
 			auto& gun = e->getComponent<CGun>();
 			gun.countdown -= dt;
 
-			if (isEnemy) // enemy is always firing
+			spreadChangeTimer -= dt;
+			if (isBossEnemy && spreadChangeTimer <= sf::Time::Zero) {
+				// Randomly set the spread level (1 to 4)
+				gun.spreadLevel = 1 + (std::rand() % 4);
+				std::cout << "New spread level: " << gun.spreadLevel << "\n";
+
+				// Reset the spread change timer with a random interval (5 to 10 seconds)
+				spreadChangeTimer = sf::seconds(5.f + (std::rand() % 6));
+			}
+
+			if (isEnemy || isBossEnemy)
 				gun.isFiring = true;
 
 			//
@@ -511,19 +589,46 @@ void Scene_Touhou::sGunUpdate(sf::Time dt) {
 				auto pos = e->getComponent<CTransform>().pos;
 				switch (gun.spreadLevel) {
 				case 1:
-					spawnBullet(pos + sf::Vector2f(0.f, isEnemy ? 35.f : -35.f), isEnemy);
+					spawnBullet(pos + sf::Vector2f(0.f, isBossEnemy ? 35.f : -35.f), isBossEnemy);
 					break;
 
 				case 2:
-					spawnBullet(pos + sf::Vector2f(-20.f, 0.f), isEnemy);
-					spawnBullet(pos + sf::Vector2f(20.f, 0.f), isEnemy);
+					spawnBullet(pos + sf::Vector2f(-20.f, 0.f), isBossEnemy);
+					spawnBullet(pos + sf::Vector2f(20.f, 0.f), isBossEnemy);
 					break;
 
 				case 3:
-					spawnBullet(pos + sf::Vector2f(0.f, -35.f), isEnemy);
-					spawnBullet(pos + sf::Vector2f(-20.f, 0.f), isEnemy);
-					spawnBullet(pos + sf::Vector2f(20.f, 0.f), isEnemy);
+					spawnBullet(pos + sf::Vector2f(0.f, 35.f), isBossEnemy);
+					spawnBullet(pos + sf::Vector2f(20.f, 0.f), isBossEnemy);
+					spawnBullet(pos + sf::Vector2f(-20.f, 0.f), isBossEnemy);
+
 					break;
+				case 4:
+				{
+					if (_entityManager.getEntities("EnemyBullet").size() <= 20) {
+						gun.fireRate = 1;
+						// Semi - circle
+						const int numBullets = 10;
+
+						const float angleStep = 180.f / (numBullets - 1);
+
+						const float radius = 100.f;
+
+						for (int i = 0; i < numBullets; ++i)
+						{
+							float angle = 0.f + i * angleStep;
+
+							sf::Vector2f bulletPos = pos + sf::Vector2f(std::cos(degToRad(angle)) * radius,
+								std::sin(degToRad(angle)) * radius);
+
+							spawnBullet(bulletPos, isBossEnemy);
+						}
+					}
+					else {
+						gun.isFiring = false;
+					}
+					break;
+				}
 
 				default:
 					std::cerr << "Bad spread level firing gun\n";
@@ -550,6 +655,7 @@ void Scene_Touhou::spawnBullet(sf::Vector2f pos, bool isEnemy) {
 		.getAnimation("Bullet")).animation.getBB();
 	bullet->addComponent<CBoundingBox>(bb);
 	bullet->addComponent<CTransform>(pos, sf::Vector2f(0.f, speed));
+	bullet->addComponent<CSpawnPosition>(pos);
 }
 
 void Scene_Touhou::sSpawnEnemies() {
@@ -564,19 +670,20 @@ void Scene_Touhou::sSpawnEnemies() {
 }
 
 void Scene_Touhou::spawnBoss(SpawnPoint sp) {
-	sf::Vector2f pos{ 500.f, sp.y };
+	sf::Vector2f pos{ 350.f, sp.y };
 	auto bossEnemy = _entityManager.addEntity("bossEnemy");
 	auto& tfm = bossEnemy->addComponent<CTransform>(pos, sf::Vector2f{ 0.f, _config.enemySpeed });
+	auto& type = sp.type;
+	type = "Boss";
 
 	if (sp.type == "Boss")
-		bossEnemy->addComponent<CGun>();
+	{
+		auto bb = bossEnemy->
+			addComponent<CAnimation>(Assets::getInstance().getAnimation(sp.type)).animation.getBB();
+		bossEnemy->addComponent<CBoundingBox>(bb);
 
-	auto bb = bossEnemy->
-		addComponent<CAnimation>(Assets::getInstance().getAnimation(sp.type)).animation.getBB();
-
-	bossEnemy->addComponent<CBoundingBox>(bb);
-	bossEnemy->addComponent<CHealth>(50000);
-	bossEnemy->addComponent<CAutoPilot>();
+		bossEnemy->addComponent<CHealth>(50000);
+	}
 }
 
 void Scene_Touhou::spawnEnemyPlanes(SpawnPoint sp) {
@@ -593,14 +700,16 @@ void Scene_Touhou::spawnEnemyPlanes(SpawnPoint sp) {
 		tfm.angle = 180;
 
 		if (sp.type == "Avenger")
+		{
 			enemyPlane->addComponent<CGun>();
 
-		auto bb = enemyPlane->
-			addComponent<CAnimation>(Assets::getInstance().getAnimation(sp.type)).animation.getBB();
+			auto bb = enemyPlane->
+				addComponent<CAnimation>(Assets::getInstance().getAnimation(sp.type)).animation.getBB();
 
-		enemyPlane->addComponent<CBoundingBox>(bb);
-		enemyPlane->addComponent<CHealth>(100);
-		enemyPlane->addComponent<CAutoPilot>();
+			enemyPlane->addComponent<CBoundingBox>(bb);
+			enemyPlane->addComponent<CHealth>(100);
+			enemyPlane->addComponent<CAutoPilot>();
+		}
 	}
 }
 
@@ -612,9 +721,21 @@ void Scene_Touhou::sAutoPilot(sf::Time dt) {
 			if (ai.countdown < sf::Time::Zero) {
 				ai.currentLeg = (ai.currentLeg + 1) % autopilot_directions.size();
 				ai.countdown = autopilot_directions[ai.currentLeg].dt;
-
 				auto& tfm = e->getComponent<CTransform>();
-				tfm.vel = length(tfm.vel) * uVecBearing(90 + autopilot_directions[ai.currentLeg].bearing);
+				if (e->getTag() == "bossEnemy") {
+					auto& tfmBoss = e->getComponent<CTransform>();
+					// Only move randomly if below y = 1200.f
+					if (tfmBoss.pos.y < 1200.f) {
+						// Generate a random angle between -30 to 30 degrees
+						float randomAngle = getRandomFloat(-30.f, 30.f);
+
+						// Set velocity based on the new random movement
+						tfmBoss.vel = length(tfmBoss.vel) * uVecBearing(90 + autopilot_directions[ai.currentLeg].bearing + randomAngle);
+					}
+				}
+				else {
+					tfm.vel = length(tfm.vel) * uVecBearing(90 + autopilot_directions[ai.currentLeg].bearing);
+				}
 			}
 		}
 	}
@@ -721,7 +842,7 @@ void Scene_Touhou::checkPlaneCollision() {
 void Scene_Touhou::checkBulletCollision() {
 	// Player Bullets
 	for (auto& bullet : _entityManager.getEntities("PlayerBullet")) {
-		for (auto& e : _entityManager.getEntities("enemy")) {
+		for (auto& e : _entityManager.getEntities("bossEnemy")) {
 			auto overlap = Physics::getOverlap(bullet, e);
 			if (overlap.x > 0 && overlap.y > 0) {
 				e->getComponent<CHealth>().hp -= 10;
@@ -732,10 +853,9 @@ void Scene_Touhou::checkBulletCollision() {
 	}
 
 	// Enemy Bullets
-	for (auto& bullet : _entityManager.getEntities("enemyBullet")) {
+	for (auto& bullet : _entityManager.getEntities("EnemyBullet")) {
 		auto overlap = Physics::getOverlap(_player, bullet);
 		if (overlap.x > 0 && overlap.y > 0) {
-			auto& pHP = _player->getComponent<CHealth>().hp;
 			_player->getComponent<CHealth>().hp -= 10;
 			bullet->destroy();
 			checkIfDead(_player);

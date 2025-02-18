@@ -14,23 +14,4 @@ Bkg Finish 0 0
 Bkg1 White 0 0
 
 #spawn enemies
-Spawn Avenger 200
-Spawn Raptor  600
-Spawn Boss 500
-Spawn Avenger 800
-Spawn Raptor  1100
-Spawn Avenger 1200
-Spawn Raptor  1600
-Spawn Avenger 1800
-Spawn Raptor  2100
-Spawn Avenger 3200
-Spawn Raptor  3600
-Spawn Avenger 3800
-Spawn Raptor  4100
-Spawn Avenger 4200
-Spawn Raptor  4600
-Spawn Avenger 4800
-Spawn Raptor  5100
-Spawn Avenger 5200
-Spawn Raptor  5600
-Spawn Avenger 5800
+Spawn Boss    200

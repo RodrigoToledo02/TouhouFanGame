@@ -34,7 +34,7 @@
     },
     {
         "filename": "Boss.png",
-        "frame": {"x":1,"y":65,"w":64,"h":64},
+        "frame": {"x":0,"y":65,"w":64,"h":64},
         "rotated": false,
         "trimmed": false,
         "spriteSourceSize": {"x":0,"y":0,"w":64,"h":64},
