@@ -257,7 +257,7 @@ void Scene_Touhou::sRender() {
 }
 
 void Scene_Touhou::registerActions() {
-	registerAction(sf::Keyboard::Z, "ZOOMOUT");
+	registerAction(sf::Keyboard::Z, "SKIP");
 	registerAction(sf::Keyboard::X, "ZOOMIN");
 
 	registerAction(sf::Keyboard::P, "PAUSE");
@@ -340,8 +340,8 @@ void Scene_Touhou::adjustPlayerPosition() {
 	auto& center = _worldView.getCenter();
 	sf::Vector2f viewHalfSize = _game->windowSize() / 2.f;
 
-	auto left = center.x - viewHalfSize.x;
-	auto right = center.x + viewHalfSize.x;
+	auto left = center.x - (viewHalfSize.x / 2.f);
+	auto right = center.x + (viewHalfSize.x / 3.f);
 	auto top = center.y - viewHalfSize.y;
 	auto bot = center.y + viewHalfSize.y;
 
@@ -595,7 +595,8 @@ void Scene_Touhou::sGunUpdate(sf::Time dt) {
 				static int lastCheckedHP = bossCurrentHP;
 
 				if ((lastCheckedHP - bossCurrentHP) >= 10000) {
-					gun.spreadLevel = 1 + (std::rand() % 4);
+					std::uniform_int_distribution<int> dist(1, 4);
+					gun.spreadLevel = dist(rng);
 					std::cout << "New spread level: " << gun.spreadLevel << "\n";
 
 					lastCheckedHP = bossCurrentHP;
@@ -869,7 +870,7 @@ void Scene_Touhou::sGuideMissiles(sf::Time dt) {
 
 void Scene_Touhou::checkPickupCollision() {
 	for (auto e : _entityManager.getEntities("Pickup")) {
-		// player collids with pickup;
+		// player collides with pickup;
 		auto overlap = Physics::getOverlap(_player, e);
 		if (overlap.x > 0 && overlap.y > 0) {
 			auto pickupType = e->getComponent<CState>().state;
@@ -929,7 +930,10 @@ void Scene_Touhou::checkBulletCollision() {
 		if (overlap.x > 0 && overlap.y > 0) {
 			_player->getComponent<CHealth>().hp -= 10;
 			bullet->destroy();
-			checkIfDead(_player);
+			if (_player->getComponent<CHealth>().hp == 0) {
+				_player->destroy();
+				//restartGame(_levelPath);
+			}
 		}
 	}
 }
@@ -979,7 +983,7 @@ void Scene_Touhou::checkIfDead(sPtrEntt e) {
 }
 
 void Scene_Touhou::restartGame(const std::string& levelPath) {
-	for (auto& e : _entityManager.getEntities()) {
+	for (auto const& e : _entityManager.getEntities()) {
 		e->destroy();
 	}
 	_entityManager.update();

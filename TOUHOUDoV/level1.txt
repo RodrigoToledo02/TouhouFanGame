@@ -1,6 +1,6 @@
 # Level 1
 
-World 1080 1920
+World 800 1800
 
 ScrollSpeed 75
 PlayerSpeed 250

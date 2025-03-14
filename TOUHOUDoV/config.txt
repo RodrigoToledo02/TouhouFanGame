@@ -1,6 +1,6 @@
 # Game Config
-
-Window  720 850
+#720 850
+Window  800 950
 
 Font    Arial      	../assets/fonts/arial.ttf
 Font    main       	../assets/fonts/Sansation.ttf
