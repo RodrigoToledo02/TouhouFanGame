@@ -220,11 +220,21 @@ void Scene_Touhou::drawEntt(sPtrEntt e) {
 void Scene_Touhou::sRender() {
 	_game->window().setView(_worldView);
 
+	auto& center = _worldView.getCenter();
+	sf::Vector2f viewHalfSize = _game->windowSize() / 2.f;
+
+	auto left = center.x - (viewHalfSize.x / 2.f);
+	auto right = center.x + (viewHalfSize.x / 3.f);
+	auto top = center.y - viewHalfSize.y;
+	auto bot = center.y + viewHalfSize.y;
+
 	// draw bkg first
 	if (backgroundToggle) {
 		for (auto& e : _entityManager.getEntities("bkg")) {
 			if (e->getComponent<CSprite>().has) {
 				auto& sprite = e->getComponent<CSprite>().sprite;
+				sprite.setPosition(left, top);
+				sprite.setScale((right - left) / sprite.getTexture()->getSize().x, (bot - top) / sprite.getTexture()->getSize().y);
 				_game->window().draw(sprite);
 			}
 		}
@@ -233,6 +243,8 @@ void Scene_Touhou::sRender() {
 		for (auto& e : _entityManager.getEntities("bkg1")) {
 			if (e->getComponent<CSprite>().has) {
 				auto& sprite = e->getComponent<CSprite>().sprite;
+				sprite.setPosition(left, top);
+				sprite.setScale((right - left) / sprite.getTexture()->getSize().x, (bot - top) / sprite.getTexture()->getSize().y);
 				_game->window().draw(sprite);
 			}
 		}
@@ -431,6 +443,12 @@ void Scene_Touhou::sMovement(sf::Time dt) {
 	bool bossHasPassed1200 = false;
 	int bossSpreadLevel = 1;
 
+	auto& center = _worldView.getCenter();
+	sf::Vector2f viewHalfSize = _game->windowSize() / 2.f;
+
+	auto left = center.x - (viewHalfSize.x / 2.f);
+	auto right = center.x + (viewHalfSize.x / 3.f);
+
 	playerMovement();
 	animatePlayer();
 
@@ -482,7 +500,7 @@ void Scene_Touhou::sMovement(sf::Time dt) {
 			}
 			else if (boss)
 			{
-				if (tfm.pos.y < 1100.f && !bossHasPassed1200) {
+				if (tfm.pos.y < center.y - 300.f && !bossHasPassed1200) {
 					tfm.pos += tfm.vel * dt.asSeconds();
 					tfm.angle += tfm.angVel * dt.asSeconds();
 				}
@@ -498,16 +516,16 @@ void Scene_Touhou::sMovement(sf::Time dt) {
 					tfm.pos.x += tfm.vel.x * dt.asSeconds();
 					tfm.angle += tfm.angVel * dt.asSeconds();
 
-					if (tfm.pos.x < 100.f || tfm.pos.x > 650.f) {
+					if (tfm.pos.x < left || tfm.pos.x > right) {
 						tfm.vel.x = -tfm.vel.x;
 					}
-					if (tfm.pos.y < 1100.f || tfm.pos.y > 1300.f) {
+					if (tfm.pos.y < center.y - 300.f || tfm.pos.y > center.y - 100.f) {
 						tfm.vel.y = -tfm.vel.y;
 					}
 
 					// Clamp to ensure boss stays within range
-					tfm.pos.x = std::clamp(tfm.pos.x, 100.f, 650.f);
-					tfm.pos.y = std::clamp(tfm.pos.y, 1100.f, 1300.f);
+					tfm.pos.x = std::clamp(tfm.pos.x, left, right);
+					tfm.pos.y = std::clamp(tfm.pos.y, center.y - 300.f, center.y - 100.f);
 				}
 			}
 			else {
@@ -529,6 +547,9 @@ void Scene_Touhou::sUpdate(sf::Time dt) {
 	SoundPlayer::getInstance().removeStoppedSounds();
 	_entityManager.update();
 	_worldView.move(0.f, 0.f);
+
+	sf::Vector2f center = _worldView.getCenter();
+	SoundPlayer::getInstance().setListnerPosition(center);
 
 	sAnimation(dt);
 	sAutoPilot(dt);
@@ -713,13 +734,14 @@ void Scene_Touhou::sGunUpdate(sf::Time dt) {
 
 void Scene_Touhou::spawnBullet(sf::Vector2f pos, bool isEnemy) {
 	float speed;
+	sf::Vector2f center = _worldView.getCenter();
 	if (isEnemy) {
 		speed = _config.bulletSpeed;
-		SoundPlayer::getInstance().play("EnemyGunfire", pos);
+		SoundPlayer::getInstance().play("EnemyGunfire", center);
 	}
 	else {
 		speed = -_config.bulletSpeed;
-		SoundPlayer::getInstance().play("Damage01", pos);
+		SoundPlayer::getInstance().play("Damage01", center);
 	}
 
 	auto bullet = _entityManager.addEntity(isEnemy ? "EnemyBullet" : "PlayerBullet");
@@ -742,7 +764,12 @@ void Scene_Touhou::sSpawnEnemies() {
 }
 
 void Scene_Touhou::spawnBoss(SpawnPoint sp) {
-	sf::Vector2f pos{ 350.f, sp.y };
+	auto& center = _worldView.getCenter();
+	sf::Vector2f viewHalfSize = _game->windowSize() / 2.f;
+
+	auto top = center.y - viewHalfSize.y;
+
+	sf::Vector2f pos{ center.x, top };
 	auto bossEnemy = _entityManager.addEntity("bossEnemy");
 	auto& tfm = bossEnemy->addComponent<CTransform>(pos, sf::Vector2f{ 0.f, _config.enemySpeed });
 	auto& type = sp.type;
