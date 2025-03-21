@@ -96,19 +96,17 @@ struct CCollision : public Component
 	}
 };
 
-struct CBoundingBox : public Component
-{
+struct CBoundingBox : public Component {
 	sf::Vector2f size{ 0.f, 0.f };
 	sf::Vector2f halfSize{ 0.f, 0.f };
 	bool isSmall{ false };
+	bool isCircular{ false };
+	float radius{ 0.f };
 
 	CBoundingBox() = default;
-	explicit CBoundingBox(const sf::Vector2f& s) : size(s), halfSize(0.5f * s)
-	{
-	}
-	CBoundingBox(float w, float h) : size(sf::Vector2f{ w,h }), halfSize(0.5f * size)
-	{
-	}
+	explicit CBoundingBox(const sf::Vector2f& s) : size(s), halfSize(0.5f * s) {}
+	CBoundingBox(float w, float h) : size(sf::Vector2f{ w,h }), halfSize(0.5f * size) {}
+	explicit CBoundingBox(float r) : isCircular(true), radius(r) {}
 };
 
 struct CInput : public Component

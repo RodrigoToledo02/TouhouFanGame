@@ -15,6 +15,7 @@ bool firstTimePassing1200 = true;
 bool amountOfBullets = false;
 bool shooting = false;
 bool isSpread4 = false;
+int lastCheckedHP = 50000;
 
 namespace {
 	std::random_device rd;
@@ -142,21 +143,38 @@ void Scene_Touhou::sDoAction(const Command& command) {
 
 void Scene_Touhou::playerSize(bool set) {
 	auto& bb = _player->getComponent<CBoundingBox>();
-	bb.isSmall = set;
+	static sf::Vector2f originalSize = bb.size; // Store the original size
+
+	if (set) {
+		// Make the bounding box smaller and circular
+		bb.isCircular = true;
+		bb.radius = std::min(originalSize.x, originalSize.y) / 4.f; // Half the radius
+	}
+	else {
+		// Restore the original bounding box size and shape
+		bb.isCircular = false;
+		bb.size = originalSize;
+		bb.halfSize = bb.size / 2.f;
+	}
 }
 
 void Scene_Touhou::drawAABB(std::shared_ptr<Entity> e) {
 	if (_drawAABB) {
 		auto box = e->getComponent<CBoundingBox>();
-		if (box.isSmall) box.size *= .5f;
-		sf::RectangleShape rect;
-		rect.setSize(sf::Vector2f{ box.size.x, box.size.y });
-		centerOrigin(rect);
-		rect.setPosition(e->getComponent<CTransform>().pos);
-		rect.setFillColor(sf::Color(0, 0, 0, 0));
-		rect.setOutlineColor(sf::Color{ 0, 255, 0 });
-		rect.setOutlineThickness(2.f);
-		_game->window().draw(rect);
+		sf::Shape* shape;
+		if (box.isCircular) {
+			shape = new sf::CircleShape(box.radius);
+		}
+		else {
+			shape = new sf::RectangleShape(sf::Vector2f{ box.size.x, box.size.y });
+		}
+		centerOrigin(*shape);
+		shape->setPosition(e->getComponent<CTransform>().pos);
+		shape->setFillColor(sf::Color(0, 0, 0, 0));
+		shape->setOutlineColor(sf::Color{ 0, 255, 0 });
+		shape->setOutlineThickness(2.f);
+		_game->window().draw(*shape);
+		delete shape;
 	}
 }
 
@@ -234,7 +252,7 @@ void Scene_Touhou::sRender() {
 			if (e->getComponent<CSprite>().has) {
 				auto& sprite = e->getComponent<CSprite>().sprite;
 				sprite.setPosition(left, top);
-				sprite.setScale((right - left) / sprite.getTexture()->getSize().x, (bot - top) / sprite.getTexture()->getSize().y);
+				//sprite.setScale((right - left) / sprite.getTexture()->getSize().x, (bot - top) / sprite.getTexture()->getSize().y);
 				_game->window().draw(sprite);
 			}
 		}
@@ -568,6 +586,7 @@ void Scene_Touhou::onEnd() {
 	amountOfBullets = false;
 	shooting = false;
 	isSpread4 = false;
+	lastCheckedHP;
 	restartGame(_levelPath);
 }
 
@@ -612,9 +631,6 @@ void Scene_Touhou::sGunUpdate(sf::Time dt) {
 
 			if (isBossEnemy && e->hasComponent<CHealth>()) {
 				int bossCurrentHP = e->getComponent<CHealth>().hp;
-
-				static int lastCheckedHP = bossCurrentHP;
-
 				if ((lastCheckedHP - bossCurrentHP) >= 10000) {
 					std::uniform_int_distribution<int> dist(1, 4);
 					gun.spreadLevel = dist(rng);
@@ -641,6 +657,9 @@ void Scene_Touhou::sGunUpdate(sf::Time dt) {
 					spawnBullet(pos + sf::Vector2f(20.f, 0.f), isBossEnemy);
 					break;
 				case 1:
+					spawnBullet(pos + sf::Vector2f(0.f, 0.f), isBossEnemy);
+					break;
+				case 2:
 					gun.fireRate = 1.5;
 					for (int i = -5; i <= 5; ++i) {  // This creates 5 lines
 						for (int j = 0; j < 10; ++j) {  // 20 bullets per line
@@ -649,7 +668,7 @@ void Scene_Touhou::sGunUpdate(sf::Time dt) {
 					}
 					break;
 
-				case 2:
+				case 3:
 				{
 					float circleRadius = 50.f;
 					int bulletsPerCircle = 10;
@@ -680,7 +699,7 @@ void Scene_Touhou::sGunUpdate(sf::Time dt) {
 				}
 				break;
 
-				case 3:
+				case 4:
 					spawnBullet(pos + sf::Vector2f(0.f, 35.f), isBossEnemy);
 					spawnBullet(pos + sf::Vector2f(20.f, 0.f), isBossEnemy);
 					spawnBullet(pos + sf::Vector2f(-20.f, 0.f), isBossEnemy);
@@ -694,7 +713,7 @@ void Scene_Touhou::sGunUpdate(sf::Time dt) {
 					}
 
 					break;
-				case 4:
+				case 5:
 				{
 					isSpread4 = true;
 					if (_entityManager.getEntities("EnemyBullet").size() <= 20) {
@@ -745,9 +764,17 @@ void Scene_Touhou::spawnBullet(sf::Vector2f pos, bool isEnemy) {
 	}
 
 	auto bullet = _entityManager.addEntity(isEnemy ? "EnemyBullet" : "PlayerBullet");
-	auto bb = bullet->addComponent<CAnimation>(Assets::getInstance()
-		.getAnimation("Bullet")).animation.getBB();
-	bullet->addComponent<CBoundingBox>(bb);
+	auto animationName = isEnemy ? "ShotWhite" : "WhiteKnife";
+	auto bb = bullet->addComponent<CAnimation>(Assets::getInstance().getAnimation(animationName)).animation.getBB();
+	if (isEnemy) {
+		bb.x /= 2;
+		bb.y /= 2;
+		float radius = std::min(bb.x, bb.y) / 2.f;
+		bullet->addComponent<CBoundingBox>(radius);
+	}
+	else {
+		bullet->addComponent<CBoundingBox>(bb);// Use circular hitbox for player bullets
+	}
 	bullet->addComponent<CTransform>(pos, sf::Vector2f(0.f, speed));
 	bullet->addComponent<CSpawnPosition>(pos);
 }
@@ -953,13 +980,17 @@ void Scene_Touhou::checkBulletCollision() {
 
 	// Enemy Bullets
 	for (auto& bullet : _entityManager.getEntities("EnemyBullet")) {
+		if (!_player->isActive()) {
+			break;
+		}
 		auto overlap = Physics::getOverlap(_player, bullet);
 		if (overlap.x > 0 && overlap.y > 0) {
 			_player->getComponent<CHealth>().hp -= 10;
 			bullet->destroy();
-			if (_player->getComponent<CHealth>().hp == 0) {
+			if (_player->getComponent<CHealth>().hp <= 0) {
 				_player->destroy();
-				//restartGame(_levelPath);
+				restartGame(_levelPath);
+				return;
 			}
 		}
 	}
@@ -974,6 +1005,7 @@ void Scene_Touhou::checkMissileCollision() {
 				e->getComponent<CHealth>().hp = -10;
 				m->destroy();
 				checkIfDead(e);
+				return;
 			}
 		}
 	}
@@ -988,18 +1020,9 @@ void Scene_Touhou::checkIfDead(sPtrEntt e) {
 	// when plane entities dies run an explosion animation before destroying the entity
 	if (e->hasComponent<CHealth>()) {
 		if (e->getComponent<CHealth>().hp <= 0) {
-			e->addComponent<CAnimation>(Assets::getInstance().getAnimation("explosion"));
 			e->getComponent<CTransform>().vel = sf::Vector2f(0, 0);
 			e->removeComponent<CHealth>();
 			e->removeComponent<CBoundingBox>();
-			e->addComponent<CState>().state = "Dead";
-			if (flip(rng) == 1) {
-				SoundPlayer::getInstance().play("Explosion1", e->getComponent<CTransform>().pos);
-			}
-			else {
-				SoundPlayer::getInstance().play("Explosion2", e->getComponent<CTransform>().pos);
-			}
-
 			if (e->getTag() == "enemy")
 				dropPickup(e->getComponent<CTransform>().pos);
 			if (e->getTag() == "player") {
@@ -1018,6 +1041,7 @@ void Scene_Touhou::restartGame(const std::string& levelPath) {
 	amountOfBullets = false;
 	shooting = false;
 	isSpread4 = false;
+	lastCheckedHP = 50000;
 	init(levelPath);
 }
 

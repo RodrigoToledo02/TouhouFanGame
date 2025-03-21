@@ -19,7 +19,7 @@ void GameEngine::init(const std::string& path)
 	unsigned int width;
 	unsigned int height;
 	loadConfigFromFile(path, width, height);
-
+	//_window.create(sf::VideoMode(width, height), "Touhou: Darkness of the Void");
 	_window.create(sf::VideoMode(width, height), "Touhou: Darkness of the Void", sf::Style::Fullscreen);
 
 	_statisticsText.setFont(Assets::getInstance().getFont("main"));

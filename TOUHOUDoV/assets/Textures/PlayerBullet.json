@@ -1,0 +1,68 @@
+{"frames": [
+
+    {
+        "filename": "WhiteCard.png",
+        "frame": {"x":0,"y":0,"w":16,"h":16},
+        "rotated": false,
+        "trimmed": false,
+        "spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
+        "sourceSize": {"w":16,"h":16}
+    },
+    {
+        "filename": "GreyCard.png",
+        "frame": {"x":17,"y":0,"w":16,"h":16},
+        "rotated": false,
+        "trimmed": false,
+        "spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
+        "sourceSize": {"w":16,"h":16}
+    },
+    {
+        "filename": "BlackCard.png",
+        "frame": {"x":33,"y":0,"w":16,"h":16},
+        "rotated": false,
+        "trimmed": false,
+        "spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
+        "sourceSize": {"w":16,"h":16}
+    },
+    {
+        "filename": "RedCard.png",
+        "frame": {"x":49,"y":0,"w":16,"h":16},
+        "rotated": false,
+        "trimmed": false,
+        "spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
+        "sourceSize": {"w":16,"h":16}
+    },
+    {
+        "filename": "WhiteKnife.png",
+        "frame": {"x":0,"y":17,"w":16,"h":16},
+        "rotated": false,
+        "trimmed": false,
+        "spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
+        "sourceSize": {"w":16,"h":16}
+    },
+    {
+        "filename": "GreyKnife.png",
+        "frame": {"x":17,"y":17,"w":16,"h":16},
+        "rotated": false,
+        "trimmed": false,
+        "spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
+        "sourceSize": {"w":16,"h":16}
+    },
+    {
+        "filename": "BlackKnife.png",
+        "frame": {"x":33,"y":17,"w":16,"h":16},
+        "rotated": false,
+        "trimmed": false,
+        "spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
+        "sourceSize": {"w":16,"h":16}
+    },
+    {
+        "filename": "RedKnife.png",
+        "frame": {"x":49,"y":17,"w":16,"h":16},
+        "rotated": false,
+        "trimmed": false,
+        "spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
+        "sourceSize": {"w":16,"h":16}
+    }
+]
+}
