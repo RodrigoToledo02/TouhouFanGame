@@ -149,12 +149,14 @@ void Scene_Touhou::playerSize(bool set) {
 		// Make the bounding box smaller and circular
 		bb.isCircular = true;
 		bb.radius = std::min(originalSize.x, originalSize.y) / 4.f; // Half the radius
+		_player->getComponent<CGun>().spreadLevel = 1;
 	}
 	else {
 		// Restore the original bounding box size and shape
 		bb.isCircular = false;
 		bb.size = originalSize;
 		bb.halfSize = bb.size / 2.f;
+		_player->getComponent<CGun>().spreadLevel = 0;
 	}
 }
 
@@ -252,7 +254,6 @@ void Scene_Touhou::sRender() {
 			if (e->getComponent<CSprite>().has) {
 				auto& sprite = e->getComponent<CSprite>().sprite;
 				sprite.setPosition(left, top);
-				//sprite.setScale((right - left) / sprite.getTexture()->getSize().x, (bot - top) / sprite.getTexture()->getSize().y);
 				_game->window().draw(sprite);
 			}
 		}
@@ -262,6 +263,7 @@ void Scene_Touhou::sRender() {
 			if (e->getComponent<CSprite>().has) {
 				auto& sprite = e->getComponent<CSprite>().sprite;
 				sprite.setPosition(left, top);
+
 				sprite.setScale((right - left) / sprite.getTexture()->getSize().x, (bot - top) / sprite.getTexture()->getSize().y);
 				_game->window().draw(sprite);
 			}
@@ -274,9 +276,14 @@ void Scene_Touhou::sRender() {
 		drawAABB(e);
 	}
 
+	for (auto& e : _entityManager.getEntities("PlayerBullet")) {
+		drawEntt(e);
+		drawAABB(e);
+	}
+
 	// draw all entities
 	for (auto& e : _entityManager.getEntities()) {
-		if (!e->hasComponent<CAnimation>() || e->getTag() == "bkg" || e->getTag() == "Pickup")
+		if (!e->hasComponent<CAnimation>() || e->getTag() == "bkg" || e->getTag() == "Pickup" || e->getTag() == "PlayerBullet")
 			continue;
 		drawEntt(e);
 		drawAABB(e);
@@ -483,11 +490,12 @@ void Scene_Touhou::sMovement(sf::Time dt) {
 			auto& tfm = e->getComponent<CTransform>();
 
 			auto boss = e->getTag() == "bossEnemy";
-			auto bullet = e->getTag() == "EnemyBullet";
+			auto eBullet = e->getTag() == "EnemyBullet";
+			auto pBullet = e->getTag() == "PlayerBullet";
 
-			if (bullet)
+			if (eBullet)
 			{
-				if (bossSpreadLevel == 4) {
+				if (bossSpreadLevel == 5) {
 					int bulletCount = _entityManager.getEntities("EnemyBullet").size();
 					if (bulletCount <= 20)
 					{
@@ -545,6 +553,12 @@ void Scene_Touhou::sMovement(sf::Time dt) {
 					tfm.pos.x = std::clamp(tfm.pos.x, left, right);
 					tfm.pos.y = std::clamp(tfm.pos.y, center.y - 300.f, center.y - 100.f);
 				}
+			}
+			else if (pBullet)
+			{
+				tfm.pos += tfm.vel * dt.asSeconds();
+				tfm.angle = 90 + bearing(tfm.vel);
+				tfm.angle += tfm.angVel * dt.asSeconds();
 			}
 			else {
 				tfm.pos += tfm.vel * dt.asSeconds();
@@ -632,7 +646,7 @@ void Scene_Touhou::sGunUpdate(sf::Time dt) {
 			if (isBossEnemy && e->hasComponent<CHealth>()) {
 				int bossCurrentHP = e->getComponent<CHealth>().hp;
 				if ((lastCheckedHP - bossCurrentHP) >= 10000) {
-					std::uniform_int_distribution<int> dist(1, 4);
+					std::uniform_int_distribution<int> dist(2, 5);
 					gun.spreadLevel = dist(rng);
 					std::cout << "New spread level: " << gun.spreadLevel << "\n";
 
@@ -777,6 +791,19 @@ void Scene_Touhou::spawnBullet(sf::Vector2f pos, bool isEnemy) {
 	}
 	bullet->addComponent<CTransform>(pos, sf::Vector2f(0.f, speed));
 	bullet->addComponent<CSpawnPosition>(pos);
+
+	if (!isEnemy && _player->getComponent<CInput>().lshift == true) {
+		auto boss = _entityManager.getEntities("bossEnemy");
+		if (!boss.empty()) {
+			auto bossPos = boss.front()->getComponent<CTransform>().pos;
+			auto direction = normalize(bossPos - pos);
+			bullet->getComponent<CTransform>().vel = direction * std::abs(speed);
+		}
+	}
+	auto& bulletTransform = bullet->getComponent<CTransform>();
+	float angle = std::atan2(bulletTransform.vel.y, bulletTransform.vel.x) * 180.f / 3.14159265f;
+
+	bullet->getComponent<CAnimation>().animation.getSprite().setRotation(angle);
 }
 
 void Scene_Touhou::sSpawnEnemies() {
@@ -804,8 +831,15 @@ void Scene_Touhou::spawnBoss(SpawnPoint sp) {
 
 	if (sp.type == "Boss")
 	{
-		auto bb = bossEnemy->
-			addComponent<CAnimation>(Assets::getInstance().getAnimation(sp.type)).animation.getBB();
+		auto& animation = bossEnemy->addComponent<CAnimation>(Assets::getInstance().getAnimation(sp.type)).animation;
+		auto& sprite = animation.getSprite();
+
+		sprite.setScale(1.5f, 1.5f);
+
+		auto bb = animation.getBB();
+		bb.x /= 2;
+		bb.y /= 1.5;
+
 		bossEnemy->addComponent<CBoundingBox>(bb);
 
 		bossEnemy->addComponent<CHealth>(50000);
@@ -1023,13 +1057,33 @@ void Scene_Touhou::checkIfDead(sPtrEntt e) {
 			e->getComponent<CTransform>().vel = sf::Vector2f(0, 0);
 			e->removeComponent<CHealth>();
 			e->removeComponent<CBoundingBox>();
-			if (e->getTag() == "enemy")
+			if (e->getTag() == "enemy") {
 				dropPickup(e->getComponent<CTransform>().pos);
+			}
 			if (e->getTag() == "player") {
 				restartGame(_levelPath);
 			}
+			if (e->getTag() == "bossEnemy") {
+				// Boss is killed, transition to main menu and reset game state
+				_game->changeScene("MENU", nullptr, false);
+				resetGameState();
+				MusicPlayer::getInstance().play("menuTheme");
+			}
 		}
 	}
+}
+
+void Scene_Touhou::resetGameState() {
+	for (auto const& e : _entityManager.getEntities()) {
+		e->destroy();
+	}
+	_entityManager.update();
+	firstTimePassing1200 = true;
+	amountOfBullets = false;
+	shooting = false;
+	isSpread4 = false;
+	lastCheckedHP = 50000;
+	onEnd();
 }
 
 void Scene_Touhou::restartGame(const std::string& levelPath) {

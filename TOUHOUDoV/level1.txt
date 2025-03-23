@@ -10,7 +10,6 @@ MissileSpeed 250
 FireInterval 3
 
 Bkg Black 0 0
-Bkg Finish 0 0
 Bkg1 White 0 0
 
 #spawn enemies

@@ -34,7 +34,7 @@ void Scene_Menu::init()
 
 	m_levelPaths.emplace_back("../level1.txt");
 	m_levelPaths.emplace_back("../level1.txt");
-	m_levelPaths.emplace_back("../level1.txt");
+	//m_levelPaths.emplace_back(2);
 
 	m_menuText.setFont(Assets::getInstance().getFont("main"));
 
@@ -125,7 +125,18 @@ void Scene_Menu::sDoAction(const Command& action)
 		}
 		else if (action.name() == "PLAY")
 		{
-			_game->changeScene("PLAY", std::make_shared<Scene_Touhou>(_game, m_levelPaths[m_menuIndex]));
+			if (m_menuIndex == 0) // Start option
+			{
+				_game->changeScene("PLAY", std::make_shared<Scene_Touhou>(_game, m_levelPaths[m_menuIndex]));
+			}
+			else if (m_menuIndex == 1) // Options option
+			{
+				_game->changeScene("PLAY", std::make_shared<Scene_Touhou>(_game, m_levelPaths[m_menuIndex]));
+			}
+			else if (m_menuIndex == 2) // Quit option
+			{
+				onEnd();
+			}
 		}
 		else if (action.name() == "QUIT")
 		{

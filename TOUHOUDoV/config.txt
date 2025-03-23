@@ -23,7 +23,7 @@ Texture BlackShot   ../assets/Textures/BlackShot.png
 Texture Player		../assets/Textures/Player.png
 Texture Entities    ../assets/Textures/Entities.png
 Texture Jungle      ../assets/Textures/Jungle-long.png
-Texture Finish      ../assets/Textures/FinishLine.png
+  Texture Finish      ../assets/Textures/FinishLine.png
 Texture Explosion   ../assets/Textures/Explosion.png
 Texture Sky         ../assets/Textures/1.png
 Texture Black       ../assets/Textures/BlackBackground.png
