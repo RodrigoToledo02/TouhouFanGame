@@ -12,23 +12,25 @@ Music menuTheme     ../assets/Music/MenuTheme.ogg
 Music missionTheme  ../assets/Music/MissionTheme.ogg
 
 JSON                ../assets/Textures/Entities.json
-JSON				../assets/Textures/Player.json
-JSON	            ../assets/Textures/PlayerBullet.json
+JSON				        ../assets/Textures/Player.json
+JSON	              ../assets/Textures/PlayerBullet.json
 JSON                ../assets/Textures/WhiteShot.json
 JSON                ../assets/Textures/BlackShot.json
+JSON                ../assets/Textures/LineShot.json
 
 # Textures
 Texture WhiteShot   ../assets/Textures/WhiteShot.png   
 Texture BlackShot   ../assets/Textures/BlackShot.png
-Texture Player		../assets/Textures/Player.png
+Texture Player		  ../assets/Textures/Player.png
 Texture Entities    ../assets/Textures/Entities.png
 Texture Jungle      ../assets/Textures/Jungle-long.png
-  Texture Finish      ../assets/Textures/FinishLine.png
+Texture Finish      ../assets/Textures/FinishLine.png
 Texture Explosion   ../assets/Textures/Explosion.png
 Texture Sky         ../assets/Textures/1.png
 Texture Black       ../assets/Textures/BlackBackground.png
 Texture White       ../assets/Textures/WhiteBackground.png
 Texture ShotPlayer  ../assets/Textures/Shot-Player.png
+Texture LineShot    ../assets/Textures/Shot_03.png
 
 #
 # SOUNDS
@@ -49,21 +51,9 @@ Sprite finishLine       Finish   0 0  1024 76
 
 #
 #  Animation    Name            Texture     Speed   Repeats
-Animation		Idle			Player		1		 yes
-Animation       EagleStr		Entities    1        yes
-Animation       EagleRgt        Entities    1        yes
-Animation       EagleLft        Entities    1        yes
-Animation       Bullet          Entities    1        yes
-Animation       Missile         Entities    1        yes
-Animation       explosion       Entities    20       no
-Animation       FireRate        Entities    1        yes
-Animation       FireSpread      Entities    1        yes
-Animation       HealthRefill    Entities    1        yes
-Animation       MissileRefill   Entities    1        yes
-Animation       Particle        Entities    1        yes
-Animation       Raptor          Entities    1        yes
-Animation       Avenger         Entities    1        yes
+Animation		    Idle			      Player		  1		     yes
 Animation       Boss            Player      1        yes
 Animation       WhiteKnife      ShotPlayer  1        yes
 Animation       BlackKnife      ShotPlayer  1        yes
 Animation       ShotWhite       WhiteShot   1        yes
+Animation       LineShot        LineShot    1        yes

@@ -61,7 +61,7 @@ class Scene_Touhou : public Scene
 	void                    spawnEnemyPlanes(SpawnPoint sp);
 	void					spawnBoss(SpawnPoint sp);
 
-	void                    spawnBullet(sf::Vector2f pos, bool isEnemy);
+	void                    spawnBullet(sf::Vector2f pos, bool isEnemy, const std::string& spriteName);
 	void	                registerActions();
 	void                    spawnPlayer(sf::Vector2f pos);
 	void                    playerMovement();
