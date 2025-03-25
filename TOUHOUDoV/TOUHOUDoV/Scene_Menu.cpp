@@ -23,8 +23,7 @@ void Scene_Menu::init()
 	registerAction(sf::Keyboard::Up, "UP");
 	registerAction(sf::Keyboard::S, "DOWN");
 	registerAction(sf::Keyboard::Down, "DOWN");
-	registerAction(sf::Keyboard::D, "PLAY");
-	registerAction(sf::Keyboard::Right, "PLAY");
+	registerAction(sf::Keyboard::Z, "PLAY");
 	registerAction(sf::Keyboard::Escape, "QUIT");
 
 	m_title = "TOUHOU: Darkness of the Void";
@@ -40,6 +39,13 @@ void Scene_Menu::init()
 
 	const size_t CHAR_SIZE{ 64 };
 	m_menuText.setCharacterSize(CHAR_SIZE);
+}
+
+void Scene_Menu::updateView(const sf::Vector2u& size) {
+	sf::View view = _game->window().getView();
+	view.setSize(static_cast<float>(size.x), static_cast<float>(size.y));
+	view.setCenter(size.x / 2.f, size.y / 2.f);
+	_game->window().setView(view);
 }
 
 void Scene_Menu::update(sf::Time dt)

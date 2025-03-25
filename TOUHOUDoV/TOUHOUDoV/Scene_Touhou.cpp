@@ -47,6 +47,7 @@ Scene_Touhou::Scene_Touhou(GameEngine* gameEngine, const std::string& levelPath)
 }
 
 void Scene_Touhou::init(const std::string& levelPath) {
+	_levelPath = levelPath;
 	loadLevel(levelPath);
 	registerActions();
 
@@ -58,23 +59,72 @@ void Scene_Touhou::init(const std::string& levelPath) {
 
 	MusicPlayer::getInstance().play("gameTheme");
 	MusicPlayer::getInstance().setVolume(15);
+
+	// Initialize UI elements
+	_scoreText.setFont(Assets::getInstance().getFont("Arial"));
+	_scoreText.setCharacterSize(20);
+	_scoreText.setFillColor(sf::Color::White);
+	_scoreText.setString("Score: 0");
+
+	_livesText.setFont(Assets::getInstance().getFont("Arial"));
+	_livesText.setCharacterSize(20);
+	_livesText.setFillColor(sf::Color::White);
+	_livesText.setString("Lives: 3");
+
+	_spellCardsText.setFont(Assets::getInstance().getFont("Arial"));
+	_spellCardsText.setCharacterSize(20);
+	_spellCardsText.setFillColor(sf::Color::White);
+	_spellCardsText.setString("Spell Cards: 0");
+
+	_parryText.setFont(Assets::getInstance().getFont("Arial"));
+	_parryText.setCharacterSize(20);
+	_parryText.setFillColor(sf::Color::White);
+	_parryText.setString("Parry: 0");
+
+	_backgroundCooldownText.setFont(Assets::getInstance().getFont("Arial"));
+	_backgroundCooldownText.setCharacterSize(20);
+	_backgroundCooldownText.setFillColor(sf::Color::White);
+	_backgroundCooldownText.setString("Switch Background CD: 0s");
 }
 
 void Scene_Touhou::update(sf::Time dt) {
-	sUpdate(dt);
+	if (!_isPaused) {
+		sUpdate(dt);
+	}
 }
 
 void Scene_Touhou::sDoAction(const Command& command) {
 	// On Key Press
 	if (command.type() == "START") {
-		if (command.name() == "PAUSE") { setPaused(!_isPaused); }
+		if (command.name() == "PAUSE") {
+			_isPaused = !_isPaused;
+		}
+		else if (_isPaused) {
+			if (command.name() == "UP") {
+				_pauseMenuIndex = (_pauseMenuIndex + _pauseMenuOptions.size() - 1) % _pauseMenuOptions.size();
+			}
+			else if (command.name() == "DOWN") {
+				_pauseMenuIndex = (_pauseMenuIndex + 1) % _pauseMenuOptions.size();
+			}
+			else if (command.name() == "SELECT") {
+				if (_pauseMenuIndex == 0) { // Continue
+					_isPaused = false;
+				}
+				else if (_pauseMenuIndex == 1) { // Quit
+					onEnd();
+				}
+			}
+		}
+		else if (command.name() == "TOGGLE_VIEW_MODE") {
+			_game->toggleViewMode();
+		}
 		else if (
 			command.name() == "QUIT") {
-			_game->quitLevel();
+			onEnd();
 		}
 		else if (
 			command.name() == "BACK") {
-			_game->backLevel();
+			onEnd();
 		}
 		else if (
 			command.name() == "ZOOMOUT") {
@@ -116,7 +166,12 @@ void Scene_Touhou::sDoAction(const Command& command) {
 			_player->getComponent<CInput>().lshift = true;
 		}
 		else if (command.name() == "SWITCH") {
-			backgroundToggle = !backgroundToggle;
+			if (_backgroundSwitchCooldown <= sf::Time::Zero) {
+				backgroundToggle = !backgroundToggle;
+				_backgroundSwitchCooldown = sf::seconds(10);
+
+				despawnAllBullets();
+			}
 		}
 	}
 	// on Key Release
@@ -180,14 +235,23 @@ void Scene_Touhou::drawAABB(std::shared_ptr<Entity> e) {
 	}
 }
 
+void Scene_Touhou::updateView(const sf::Vector2u& size) {
+	_worldView.setSize(static_cast<float>(size.x), static_cast<float>(size.y));
+	_worldView.setCenter(size.x / 2.f, size.y / 2.f);
+	_game->window().setView(_worldView);
+}
+
 void Scene_Touhou::drawCameraView() {
 	if (_drawCam) {
-		auto& pos = _worldView.getCenter();
 		auto size = _game->window().getSize();
+		_worldView.setSize(static_cast<float>(size.x), static_cast<float>(size.y));
+		_worldView.setCenter(size.x / 2.f, size.y / 2.f);
+		_game->window().setView(_worldView);
+
 		sf::RectangleShape rect;
 		rect.setSize(sf::Vector2f(size.x - 10, size.y - 10));
 		centerOrigin(rect);
-		rect.setPosition(pos);
+		rect.setPosition(_worldView.getCenter());
 		rect.setFillColor(sf::Color(0, 0, 0, 0));
 		rect.setOutlineColor(sf::Color{ 0, 0, 0 });
 		rect.setOutlineThickness(8.f);
@@ -239,6 +303,7 @@ void Scene_Touhou::drawEntt(sPtrEntt e) {
 
 void Scene_Touhou::sRender() {
 	_game->window().setView(_worldView);
+	_game->window().clear(sf::Color::White);
 
 	auto& center = _worldView.getCenter();
 	sf::Vector2f viewHalfSize = _game->windowSize() / 2.f;
@@ -248,9 +313,51 @@ void Scene_Touhou::sRender() {
 	auto top = center.y - viewHalfSize.y;
 	auto bot = center.y + viewHalfSize.y;
 
+	// Position UI elements to the right of the background
+	float uiX = right + 20.f;
+	float uiY = top + 20.f;
+
+	sf::FloatRect backgroundBounds;
+	if (backgroundToggle) {
+		for (auto& e : _entityManager.getEntities("bkg")) {
+			auto& sprite = e->getComponent<CSprite>().sprite;
+			backgroundBounds = sprite.getGlobalBounds();
+			break;
+		}
+	}
+	else {
+		for (auto& e : _entityManager.getEntities("bkg1")) {
+			auto& sprite = e->getComponent<CSprite>().sprite;
+			backgroundBounds = sprite.getGlobalBounds();
+			break;
+		}
+	}
+
 	// draw bkg first
 	if (backgroundToggle) {
 		for (auto& e : _entityManager.getEntities("bkg")) {
+			_game->window().clear(sf::Color::White);
+
+			_scoreText.setPosition(uiX, uiY);
+			_scoreText.setFillColor(sf::Color::Black);
+			_game->window().draw(_scoreText);
+
+			_livesText.setPosition(uiX, uiY + 30.f);
+			_livesText.setFillColor(sf::Color::Black);
+			_game->window().draw(_livesText);
+
+			_spellCardsText.setPosition(uiX, uiY + 60.f);
+			_spellCardsText.setFillColor(sf::Color::Black);
+			_game->window().draw(_spellCardsText);
+
+			_parryText.setPosition(uiX, uiY + 90.f);
+			_parryText.setFillColor(sf::Color::Black);
+			_game->window().draw(_parryText);
+
+			_backgroundCooldownText.setPosition(uiX, uiY + 120.f);
+			_backgroundCooldownText.setFillColor(sf::Color::Black);
+			_game->window().draw(_backgroundCooldownText);
+
 			if (e->getComponent<CSprite>().has) {
 				auto& sprite = e->getComponent<CSprite>().sprite;
 				sprite.setPosition(left, top);
@@ -260,6 +367,28 @@ void Scene_Touhou::sRender() {
 	}
 	else {
 		for (auto& e : _entityManager.getEntities("bkg1")) {
+			_game->window().clear(sf::Color::Black);
+
+			_scoreText.setPosition(uiX, uiY);
+			_scoreText.setFillColor(sf::Color::White);
+			_game->window().draw(_scoreText);
+
+			_livesText.setPosition(uiX, uiY + 30.f);
+			_livesText.setFillColor(sf::Color::White);
+			_game->window().draw(_livesText);
+
+			_spellCardsText.setPosition(uiX, uiY + 60.f);
+			_spellCardsText.setFillColor(sf::Color::White);
+			_game->window().draw(_spellCardsText);
+
+			_parryText.setPosition(uiX, uiY + 90.f);
+			_parryText.setFillColor(sf::Color::White);
+			_game->window().draw(_parryText);
+
+			_backgroundCooldownText.setPosition(uiX, uiY + 120.f);
+			_backgroundCooldownText.setFillColor(sf::Color::White);
+			_game->window().draw(_backgroundCooldownText);
+
 			if (e->getComponent<CSprite>().has) {
 				auto& sprite = e->getComponent<CSprite>().sprite;
 				sprite.setPosition(left, top);
@@ -276,14 +405,24 @@ void Scene_Touhou::sRender() {
 		drawAABB(e);
 	}
 
+	// draw player bullets
 	for (auto& e : _entityManager.getEntities("PlayerBullet")) {
-		drawEntt(e);
-		drawAABB(e);
+		if (backgroundBounds.contains(e->getComponent<CTransform>().pos)) {
+			drawEntt(e);
+			drawAABB(e);
+		}
+	}
+
+	for (auto& e : _entityManager.getEntities("EnemyBullet")) {
+		if (backgroundBounds.contains(e->getComponent<CTransform>().pos)) {
+			drawEntt(e);
+			drawAABB(e);
+		}
 	}
 
 	// draw all entities
 	for (auto& e : _entityManager.getEntities()) {
-		if (!e->hasComponent<CAnimation>() || e->getTag() == "bkg" || e->getTag() == "Pickup" || e->getTag() == "PlayerBullet")
+		if (!e->hasComponent<CAnimation>() || e->getTag() == "bkg" || e->getTag() == "Pickup" || e->getTag() == "PlayerBullet" || e->getTag() == "EnemyBullet")
 			continue;
 		drawEntt(e);
 		drawAABB(e);
@@ -291,23 +430,58 @@ void Scene_Touhou::sRender() {
 		drawAmmo(e);
 	}
 	drawCameraView();
+
+	// Render UI elements
+
+	if (_isPaused) {
+		drawPauseOverlay();
+	}
+}
+
+void Scene_Touhou::drawPauseOverlay() {
+	auto size = _game->window().getSize();
+	_worldView.setSize(static_cast<float>(size.x), static_cast<float>(size.y));
+	_worldView.setCenter(size.x / 2.f, size.y / 2.f);
+	_game->window().setView(_worldView);
+
+	sf::RectangleShape overlay(sf::Vector2f(size.x, size.y));
+	overlay.setFillColor(sf::Color(0, 0, 0, 150)); // Semi-transparent black
+	_game->window().draw(overlay);
+
+	_pauseMenuText.setFont(Assets::getInstance().getFont("main"));
+	_pauseMenuText.setCharacterSize(30);
+
+	static const sf::Color selectedColor(150, 150, 150);
+	static const sf::Color normalColor(255, 255, 255);
+
+	for (size_t i = 0; i < _pauseMenuOptions.size(); ++i) {
+		_pauseMenuText.setString(_pauseMenuOptions[i]);
+		_pauseMenuText.setFillColor((i == _pauseMenuIndex) ? selectedColor : normalColor);
+
+		sf::FloatRect textBounds = _pauseMenuText.getLocalBounds();
+		_pauseMenuText.setOrigin(textBounds.width / 2, textBounds.height / 2);
+		_pauseMenuText.setPosition(size.x / 2.f, size.y / 2.f + i * 40);
+
+		_game->window().draw(_pauseMenuText);
+	}
 }
 
 void Scene_Touhou::registerActions() {
-	registerAction(sf::Keyboard::Z, "SKIP");
-	registerAction(sf::Keyboard::X, "ZOOMIN");
+	registerAction(sf::Keyboard::I, "SKIP");
+	registerAction(sf::Keyboard::O, "ZOOMIN");
+	registerAction(sf::Keyboard::F11, "TOGGLE_VIEW_MODE");
 
-	registerAction(sf::Keyboard::P, "PAUSE");
-	registerAction(sf::Keyboard::Escape, "BACK");
+	registerAction(sf::Keyboard::Escape, "PAUSE");
+	registerAction(sf::Keyboard::P, "BACK");
 	registerAction(sf::Keyboard::Q, "QUIT");
 
-	registerAction(sf::Keyboard::C, "TOGGLE_COLLISION");
+	registerAction(sf::Keyboard::B, "TOGGLE_COLLISION");
 	registerAction(sf::Keyboard::T, "TOGGLE_TEXTURE");
 	registerAction(sf::Keyboard::V, "TOGGLE_CAMOUTLINE");
 
 	registerAction(sf::Keyboard::M, "LAUNCH");
 	registerAction(sf::Keyboard::LShift, "GRAZE");
-	registerAction(sf::Keyboard::N, "SWITCH");
+	registerAction(sf::Keyboard::C, "SWITCH");
 
 	registerAction(sf::Keyboard::A, "LEFT");
 	registerAction(sf::Keyboard::Left, "LEFT");
@@ -317,6 +491,7 @@ void Scene_Touhou::registerActions() {
 	registerAction(sf::Keyboard::Up, "UP");
 	registerAction(sf::Keyboard::S, "DOWN");
 	registerAction(sf::Keyboard::Down, "DOWN");
+	registerAction(sf::Keyboard::Z, "SELECT");
 }
 
 void Scene_Touhou::spawnPlayer(sf::Vector2f pos) {
@@ -587,16 +762,21 @@ void Scene_Touhou::sUpdate(sf::Time dt) {
 	sGunUpdate(dt);
 	sGuideMissiles(dt);
 	destroyOutsideBattlefieldBounds();
+
+	if (_backgroundSwitchCooldown > sf::Time::Zero) {
+		_backgroundSwitchCooldown -= dt;
+		int cooldownSeconds = static_cast<int>(std::ceil(_backgroundSwitchCooldown.asSeconds()));
+		_backgroundCooldownText.setString("Switch Background CD: " + std::to_string(cooldownSeconds) + "s");
+	}
+	else {
+		_backgroundCooldownText.setString("Switch Background CD: 0s");
+	}
 }
 
 void Scene_Touhou::onEnd() {
 	_game->changeScene("MENU", nullptr, false);
-	firstTimePassing1200 = true;
-	amountOfBullets = false;
-	shooting = false;
-	isSpread4 = false;
-	lastCheckedHP;
-	restartGame(_levelPath);
+	resetGameState();
+	MusicPlayer::getInstance().play("menuTheme");
 }
 
 void Scene_Touhou::spawnMisille() {
@@ -631,12 +811,14 @@ void Scene_Touhou::sGunUpdate(sf::Time dt) {
 	static sf::Time spreadChangeTimer = sf::seconds(5.f + (std::rand() % 6));
 	static sf::Time bulletSpawnTimer = sf::Time::Zero;
 	static int bulletIndex = 0;
+	std::string bulletTexture = backgroundToggle ? "ShotWhite" : "ShotBlack";
 
 	for (auto e : _entityManager.getEntities()) {
 		auto bullet = e->getTag() == "EnemyBullet";
 		if (e->hasComponent<CGun>() && e->hasComponent<CTransform>()) {
 			bool isEnemy = (e->getTag() == "enemy");
 			bool isBossEnemy = (e->getTag() == "bossEnemy");
+			bool isPlayer = (e->getTag() == "player");
 
 			auto& gun = e->getComponent<CGun>();
 			gun.countdown -= dt;
@@ -662,75 +844,88 @@ void Scene_Touhou::sGunUpdate(sf::Time dt) {
 			if (gun.isFiring && gun.countdown < sf::Time::Zero) {
 				gun.isFiring = false;
 				gun.countdown = _config.fireInterval / (1.f + gun.fireRate);
-				int originalFireRate = gun.fireRate;
 
 				auto pos = e->getComponent<CTransform>().pos;
-				switch (gun.spreadLevel = 2) {
+				switch (gun.spreadLevel) {
 				case 0:
-					spawnBullet(pos + sf::Vector2f(-20.f, 0.f), isBossEnemy, "ShotWhite");
-					spawnBullet(pos + sf::Vector2f(20.f, 0.f), isBossEnemy, "ShotWhite");
+					if (isPlayer)
+					{
+						spawnBullet(pos + sf::Vector2f(-20.f, 0.f), isBossEnemy, "WhiteKnife");
+						spawnBullet(pos + sf::Vector2f(20.f, 0.f), isBossEnemy, "WhiteKnife");
+					}
+					else
+					{
+						gun.fireRate = gun.originalFireRate;
+						spawnBullet(pos + sf::Vector2f(-20.f, 0.f), isBossEnemy, bulletTexture);
+						spawnBullet(pos + sf::Vector2f(20.f, 0.f), isBossEnemy, bulletTexture);
+					}
 					break;
 				case 1:
-					if (isBossEnemy)
-						gun.fireRate = originalFireRate;
-					spawnBullet(pos + sf::Vector2f(0.f, 0.f), isBossEnemy, "ShotWhite");
+					if (isPlayer)
+					{
+						spawnBullet(pos + sf::Vector2f(0.f, 0.f), isBossEnemy, "WhiteKnife");
+					}
 					break;
+
 				case 2:
-					if (isBossEnemy) gun.fireRate = originalFireRate;
-					// Spawn a single bullet using the new LineShot sprite
-					spawnBullet(pos + sf::Vector2f(0.f, -500.f), isBossEnemy, "LineShot");
-					spawnBullet(pos + sf::Vector2f(-60.f, -500.f), isBossEnemy, "LineShot");
-					spawnBullet(pos + sf::Vector2f(60.f, -500.f), isBossEnemy, "LineShot");
-					spawnBullet(pos + sf::Vector2f(120.f, -500.f), isBossEnemy, "LineShot");
-					spawnBullet(pos + sf::Vector2f(180.f, -500.f), isBossEnemy, "LineShot");
+					if (isBossEnemy) {
+						gun.fireRate = gun.originalFireRate;
+						spawnBullet(pos + sf::Vector2f(0.f, -500.f), isBossEnemy, "LineShot");
+						spawnBullet(pos + sf::Vector2f(-60.f, -500.f), isBossEnemy, "LineShot");
+						spawnBullet(pos + sf::Vector2f(60.f, -500.f), isBossEnemy, "LineShot");
+						spawnBullet(pos + sf::Vector2f(120.f, -500.f), isBossEnemy, "LineShot");
+						spawnBullet(pos + sf::Vector2f(180.f, -500.f), isBossEnemy, "LineShot");
+					}
 					break;
 
 				case 3:
 				{
-					if (isBossEnemy)
-						gun.fireRate = originalFireRate;
-					float circleRadius = 50.f;
-					int bulletsPerCircle = 10;
-					float angleStep = 360.f / bulletsPerCircle; // Angle between each bullet
+					if (isBossEnemy) {
+						gun.fireRate = gun.originalFireRate;
+						float circleRadius = 50.f;
+						int bulletsPerCircle = 10;
+						float angleStep = 360.f / bulletsPerCircle; // Angle between each bullet
 
-					// Positions for the 3 circles in a triangular shape
-					sf::Vector2f circleOffsets[3] = {
-						sf::Vector2f(0.f, 100.f), // top circle
-						sf::Vector2f(-150.f, -100.f),  // bottom right circle
-						sf::Vector2f(150.f, -100.f)  // bottom left circle
-					};
+						// Positions for the 3 circles in a triangular shape
+						sf::Vector2f circleOffsets[3] = {
+							sf::Vector2f(0.f, 100.f), // top circle
+							sf::Vector2f(-150.f, -100.f),  // bottom right circle
+							sf::Vector2f(150.f, -100.f)  // bottom left circle
+						};
 
-					// Loop through each circle and spawn bullets in a circular pattern
-					for (int i = 0; i < 3; ++i) {
-						sf::Vector2f circleCenter = pos + circleOffsets[i];
+						// Loop through each circle and spawn bullets in a circular pattern
+						for (int i = 0; i < 3; ++i) {
+							sf::Vector2f circleCenter = pos + circleOffsets[i];
 
-						// Spawn 10 bullets per circle
-						for (int j = 0; j < bulletsPerCircle; ++j) {
-							float angle = j * angleStep;  // Angle for each bullet
-							sf::Vector2f bulletPos = circleCenter + sf::Vector2f(
-								std::cos(degToRad(angle)) * circleRadius,  // X offset for the bullet
-								std::sin(degToRad(angle)) * circleRadius   // Y offset for the bullet
-							);
+							// Spawn 10 bullets per circle
+							for (int j = 0; j < bulletsPerCircle; ++j) {
+								float angle = j * angleStep;  // Angle for each bullet
+								sf::Vector2f bulletPos = circleCenter + sf::Vector2f(
+									std::cos(degToRad(angle)) * circleRadius,  // X offset for the bullet
+									std::sin(degToRad(angle)) * circleRadius   // Y offset for the bullet
+								);
 
-							spawnBullet(bulletPos, isBossEnemy, "ShotWhite");
+								spawnBullet(bulletPos, isBossEnemy, bulletTexture);
+							}
 						}
 					}
 				}
 				break;
 
 				case 4:
-					if (isBossEnemy)
-						gun.fireRate = originalFireRate;
-					spawnBullet(pos + sf::Vector2f(0.f, 35.f), isBossEnemy, "ShotWhite");
-					spawnBullet(pos + sf::Vector2f(20.f, 0.f), isBossEnemy, "ShotWhite");
-					spawnBullet(pos + sf::Vector2f(-20.f, 0.f), isBossEnemy, "ShotWhite");
+					if (isBossEnemy) {
+						gun.fireRate = gun.originalFireRate;
+						spawnBullet(pos + sf::Vector2f(0.f, 35.f), isBossEnemy, bulletTexture);
+						spawnBullet(pos + sf::Vector2f(20.f, 0.f), isBossEnemy, bulletTexture);
+						spawnBullet(pos + sf::Vector2f(-20.f, 0.f), isBossEnemy, bulletTexture);
 
-					for (int i = 1; i <= 5; ++i) {
-						spawnBullet(pos + sf::Vector2f(-20.f - (i * 50.f), -i * 50.f), isBossEnemy, "ShotWhite");
-					}
+						for (int i = 1; i <= 5; ++i) {
+							spawnBullet(pos + sf::Vector2f(-20.f - (i * 50.f), -i * 50.f), isBossEnemy, bulletTexture);
+						}
 
-					for (int i = 1; i <= 5; ++i) {
-						spawnBullet(pos + sf::Vector2f(20.f + (i * 50.f), -i * 50.f), isBossEnemy, "ShotWhite");
+						for (int i = 1; i <= 5; ++i) {
+							spawnBullet(pos + sf::Vector2f(20.f + (i * 50.f), -i * 50.f), isBossEnemy, bulletTexture);
+						}
 					}
 
 					break;
@@ -738,27 +933,29 @@ void Scene_Touhou::sGunUpdate(sf::Time dt) {
 				{
 					isSpread4 = true;
 					if (_entityManager.getEntities("EnemyBullet").size() <= 20) {
-						if (isBossEnemy) gun.fireRate = -3;
-						// Semi - circle
-						const int numBullets = 10;
+						if (isBossEnemy) {
+							gun.fireRate = -3;
+							// Semi - circle
+							const int numBullets = 10;
 
-						const float angleStep = 180.f / (numBullets - 1);
+							const float angleStep = 180.f / (numBullets - 1);
 
-						const float radius = 150.f;
+							const float radius = 150.f;
 
-						if (bulletSpawnTimer <= sf::Time::Zero) {
-							float angle = bulletIndex * angleStep;
+							if (bulletSpawnTimer <= sf::Time::Zero) {
+								float angle = bulletIndex * angleStep;
 
-							sf::Vector2f bulletPos = pos + sf::Vector2f(std::cos(degToRad(angle)) * radius,
-								std::sin(degToRad(angle)) * radius);
+								sf::Vector2f bulletPos = pos + sf::Vector2f(std::cos(degToRad(angle)) * radius,
+									std::sin(degToRad(angle)) * radius);
 
-							spawnBullet(bulletPos, isBossEnemy, "ShotWhite");
-							bulletSpawnTimer = sf::seconds(0.3f);
+								spawnBullet(bulletPos, isBossEnemy, bulletTexture);
+								bulletSpawnTimer = sf::seconds(0.1f);
 
-							bulletIndex++;
-							if (bulletIndex >= numBullets) {
-								bulletIndex = 0;
-								gun.isFiring = false;
+								bulletIndex++;
+								if (bulletIndex >= numBullets) {
+									bulletIndex = 0;
+									gun.isFiring = false;
+								}
 							}
 						}
 					}
@@ -803,7 +1000,7 @@ void Scene_Touhou::spawnBullet(sf::Vector2f pos, bool isEnemy, const std::string
 		bb.y *= 1.45;
 		bullet->addComponent<CBoundingBox>(sf::Vector2f(bb.x, bb.y));
 	}
-	else if (spriteName == "ShotWhite") {
+	else if (spriteName == "ShotWhite" || spriteName == "ShotBlack") {
 		bb.x /= 2;
 		bb.y /= 2;
 		float radius = std::min(bb.x, bb.y) / 2.f;
@@ -822,6 +1019,12 @@ void Scene_Touhou::spawnBullet(sf::Vector2f pos, bool isEnemy, const std::string
 			auto direction = normalize(bossPos - pos);
 			bullet->getComponent<CTransform>().vel = direction * std::abs(speed);
 		}
+	}
+}
+
+void Scene_Touhou::despawnAllBullets() {
+	for (auto& bullet : _entityManager.getEntities("EnemyBullet")) {
+		bullet->destroy();
 	}
 }
 
@@ -1102,19 +1305,11 @@ void Scene_Touhou::resetGameState() {
 	shooting = false;
 	isSpread4 = false;
 	lastCheckedHP = 50000;
-	onEnd();
+	_isPaused = false;
 }
 
 void Scene_Touhou::restartGame(const std::string& levelPath) {
-	for (auto const& e : _entityManager.getEntities()) {
-		e->destroy();
-	}
-	_entityManager.update();
-	firstTimePassing1200 = true;
-	amountOfBullets = false;
-	shooting = false;
-	isSpread4 = false;
-	lastCheckedHP = 50000;
+	resetGameState();
 	init(levelPath);
 }
 

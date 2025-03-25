@@ -12,8 +12,8 @@ Music menuTheme     ../assets/Music/MenuTheme.ogg
 Music missionTheme  ../assets/Music/MissionTheme.ogg
 
 JSON                ../assets/Textures/Entities.json
-JSON				        ../assets/Textures/Player.json
-JSON	              ../assets/Textures/PlayerBullet.json
+JSON				../assets/Textures/Player.json
+JSON	            ../assets/Textures/PlayerBullet.json
 JSON                ../assets/Textures/WhiteShot.json
 JSON                ../assets/Textures/BlackShot.json
 JSON                ../assets/Textures/LineShot.json
@@ -51,9 +51,10 @@ Sprite finishLine       Finish   0 0  1024 76
 
 #
 #  Animation    Name            Texture     Speed   Repeats
-Animation		    Idle			      Player		  1		     yes
+Animation		Idle			Player		1		 yes
 Animation       Boss            Player      1        yes
 Animation       WhiteKnife      ShotPlayer  1        yes
 Animation       BlackKnife      ShotPlayer  1        yes
 Animation       ShotWhite       WhiteShot   1        yes
+Animation       ShotBlack       BlackShot   1        yes
 Animation       LineShot        LineShot    1        yes

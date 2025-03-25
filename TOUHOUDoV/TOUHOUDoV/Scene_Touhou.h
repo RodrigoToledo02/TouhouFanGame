@@ -32,6 +32,18 @@ class Scene_Touhou : public Scene
 	bool                                _drawAABB{ false };
 	bool                                _drawCam{ false };
 	bool								backgroundToggle{ true };
+	sf::Time							_backgroundSwitchCooldown{ sf::Time::Zero };
+	bool								_isPaused{ false };
+	int									_pauseMenuIndex{ 0 };
+	sf::Text							_pauseMenuText;
+	std::vector<std::string>			_pauseMenuOptions{ "Continue", "Quit" };
+
+	//UI
+	sf::Text _scoreText;
+	sf::Text _livesText;
+	sf::Text _spellCardsText;
+	sf::Text _parryText;
+	sf::Text _backgroundCooldownText;
 
 	//systems
 	void                    sMovement(sf::Time dt);
@@ -45,12 +57,13 @@ class Scene_Touhou : public Scene
 	void                    sAnimation(sf::Time dt);
 
 	// helper functions
+	void					despawnAllBullets();
 	bool                    isGameOver();
 	void                    dropPickup(sf::Vector2f pos);
 	void                    startAnimation(sPtrEntt e, std::string animation);
 	void                    checkIfDead(sPtrEntt e);
 	void					resetGameState();
-	void					restartGame(const std::string& path);
+
 	void                    checkMissileCollision();
 	void                    checkBulletCollision();
 	void                    checkPlaneCollision();
@@ -73,6 +86,7 @@ class Scene_Touhou : public Scene
 	void	                onEnd() override;
 	void                    drawAABB(std::shared_ptr<Entity> e);
 	void                    drawCameraView();
+
 	void					changeBackground();
 	void                    drawHP(sPtrEntt e);
 	void                    drawAmmo(sPtrEntt e);
@@ -82,9 +96,12 @@ class Scene_Touhou : public Scene
 public:
 	Scene_Touhou(GameEngine* gameEngine, const std::string& levelPath);
 	void		            update(sf::Time dt) override;
+	void					updateView(const sf::Vector2u& size);
+	void					drawPauseOverlay();
 	void		            sDoAction(const Command& command) override;
 
 	void		            sRender() override;
 
 	void                    fireBullet();
+	void					restartGame(const std::string& path);
 };

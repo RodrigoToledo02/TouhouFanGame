@@ -9,9 +9,19 @@ class Scene;
 
 using SceneMap = std::map<std::string, std::shared_ptr<Scene>>;
 
+enum class ViewMode {
+	Windowed,
+	Fullscreen,
+	WindowedFullscreen
+};
+
 class GameEngine
 {
+private:
+	ViewMode _viewMode{ ViewMode::Windowed };
+
 public:
+
 	sf::RenderWindow	        _window;
 	std::string			        _currentScene;
 	SceneMap			        _sceneMap;
@@ -24,6 +34,8 @@ public:
 	unsigned int				_statisticsNumFrames{ 0 };
 
 public:
+	void toggleViewMode();
+	void setViewMode(ViewMode mode);
 	void					init(const std::string& path);
 	void					update();
 	void					sUserInput();
@@ -31,8 +43,7 @@ public:
 
 public:
 
-	GameEngine(const std::string& path);
-	;
+	explicit GameEngine(const std::string& path);
 	void				changeScene(const std::string& sceneName,
 		std::shared_ptr<Scene> scene,
 		bool endCurrentScene = false);

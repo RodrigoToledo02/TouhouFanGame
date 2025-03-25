@@ -18,6 +18,7 @@ public:
 	Scene_Menu(GameEngine* gameEngine);
 
 	void update(sf::Time dt) override;
+	void updateView(const sf::Vector2u& size);
 
 	void sRender() override;
 	void sDoAction(const Command& action) override;

@@ -14,20 +14,70 @@ GameEngine::GameEngine(const std::string& path)
 	init(path);
 }
 
-void GameEngine::init(const std::string& path)
-{
+void GameEngine::toggleViewMode() {
+	if (_viewMode == ViewMode::Windowed) {
+		setViewMode(ViewMode::Fullscreen);
+	}
+	else if (_viewMode == ViewMode::Fullscreen) {
+		setViewMode(ViewMode::WindowedFullscreen);
+	}
+	else {
+		setViewMode(ViewMode::Windowed);
+	}
+}
+
+void GameEngine::setViewMode(ViewMode mode) {
+	_viewMode = mode;
+	sf::Uint32 style;
+	sf::Vector2u size;
+
+	if (mode == ViewMode::Windowed) {
+		style = sf::Style::Titlebar | sf::Style::Resize | sf::Style::Close;
+		size = { 800, 600 }; // Example size, adjust as needed
+	}
+	else if (mode == ViewMode::Fullscreen) {
+		style = sf::Style::Fullscreen;
+		size = { sf::VideoMode::getDesktopMode().width, sf::VideoMode::getDesktopMode().height };
+	}
+	else if (mode == ViewMode::WindowedFullscreen) {
+		style = sf::Style::None;
+		size = { sf::VideoMode::getDesktopMode().width, sf::VideoMode::getDesktopMode().height };
+	}
+
+	_window.create(sf::VideoMode(size.x, size.y), "Touhou: Darkness of the Void", style);
+	_window.setView(sf::View(sf::FloatRect(0, 0, size.x, size.y)));
+
+	auto menuScene = std::dynamic_pointer_cast<Scene_Menu>(currentScene());
+	if (menuScene) {
+		menuScene->updateView(size);
+	}
+	else {
+		auto scene = std::dynamic_pointer_cast<Scene_Touhou>(currentScene());
+		if (scene) {
+			scene->updateView(size);
+		}
+		else {
+			std::cerr << "Error: Current scene is not of type Scene_Touhou or Scene_Menu or is nullptr." << std::endl;
+		}
+	}
+}
+
+void GameEngine::init(const std::string& path) {
 	unsigned int width;
 	unsigned int height;
 	loadConfigFromFile(path, width, height);
-	_window.create(sf::VideoMode(width, height), "Touhou: Darkness of the Void");
-	//_window.create(sf::VideoMode(width, height), "Touhou: Darkness of the Void", sf::Style::Fullscreen);
+	setViewMode(ViewMode::WindowedFullscreen);
 
 	_statisticsText.setFont(Assets::getInstance().getFont("main"));
 	_statisticsText.setPosition(15.0f, 5.0f);
 	_statisticsText.setCharacterSize(15);
 
 	changeScene("MENU", std::make_shared<Scene_Menu>(this));
+	//changeScene("TOUHOU", std::make_shared<Scene_Touhou>(this, "../level1.txt"));
 }
+
+//_window.create(sf::VideoMode(width, height), "Touhou: Darkness of the Void");
+//_window.create(sf::VideoMode(width, height), "Touhou: Darkness of the Void", sf::Style::Fullscreen);
 
 void GameEngine::loadConfigFromFile(const std::string& path, unsigned int& width, unsigned int& height) const {
 	std::ifstream config(path);
@@ -93,18 +143,26 @@ void GameEngine::realTimeInput() {
 
 std::shared_ptr<Scene> GameEngine::currentScene()
 {
+	if (_sceneMap.find(_currentScene) == _sceneMap.end()) {
+		std::cerr << "Error: Current scene '" << _currentScene << "' not found in scene map." << std::endl;
+		return nullptr;
+	}
 	return _sceneMap.at(_currentScene);
 }
 
 void GameEngine::changeScene(const std::string& sceneName, std::shared_ptr<Scene> scene, bool endCurrentScene)
 {
-	if (endCurrentScene)
+	if (endCurrentScene) {
 		_sceneMap.erase(_currentScene);
+	}
 
-	if (!_sceneMap.contains(sceneName))
+	if (!_sceneMap.contains(sceneName)) {
 		_sceneMap[sceneName] = scene;
+		std::cout << "Scene '" << sceneName << "' added to scene map." << std::endl;
+	}
 
 	_currentScene = sceneName;
+	std::cout << "Current scene set to '" << _currentScene << "'." << std::endl;
 }
 
 void GameEngine::quit()
