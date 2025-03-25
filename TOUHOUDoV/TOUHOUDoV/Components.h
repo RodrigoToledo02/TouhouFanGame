@@ -48,6 +48,7 @@ struct CMissiles : public Component {
 struct CGun : public Component {
 	bool isFiring{ false };
 	sf::Time countdown{ sf::Time::Zero };
+	sf::Time cooldown{ sf::Time::Zero };
 	int fireRate{ 1 };
 	int originalFireRate{ 1 };
 	int spreadLevel{ 0 };
