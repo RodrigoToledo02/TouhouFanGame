@@ -37,6 +37,8 @@ class Scene_Touhou : public Scene
 	int									_pauseMenuIndex{ 0 };
 	sf::Text							_pauseMenuText;
 	std::vector<std::string>			_pauseMenuOptions{ "Continue", "Quit" };
+	bool								bulletsMoving{ true };
+	sf::Time							bulletMovementTimer{ sf::seconds(3) };
 
 	//UI
 	sf::Text _scoreText;

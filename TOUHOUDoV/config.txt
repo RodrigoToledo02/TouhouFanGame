@@ -17,6 +17,7 @@ JSON	            ../assets/Textures/PlayerBullet.json
 JSON                ../assets/Textures/WhiteShot.json
 JSON                ../assets/Textures/BlackShot.json
 JSON                ../assets/Textures/LineShot.json
+JSON                ../assets/Textures/LineShotBlack.json
 
 # Textures
 Texture WhiteShot   ../assets/Textures/WhiteShot.png   
@@ -31,6 +32,7 @@ Texture Black       ../assets/Textures/BlackBackground.png
 Texture White       ../assets/Textures/WhiteBackground.png
 Texture ShotPlayer  ../assets/Textures/Shot-Player.png
 Texture LineShot    ../assets/Textures/Shot_03.png
+Texture LineShotBlack    ../assets/Textures/Shot_04.png
 
 #
 # SOUNDS
@@ -58,3 +60,4 @@ Animation       BlackKnife      ShotPlayer  1        yes
 Animation       ShotWhite       WhiteShot   1        yes
 Animation       ShotBlack       BlackShot   1        yes
 Animation       LineShot        LineShot    1        yes
+Animation       LineShotBlack        LineShotBlack    1        yes
