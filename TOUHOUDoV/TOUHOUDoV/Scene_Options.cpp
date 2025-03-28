@@ -1,21 +1,20 @@
 #include "Scene_Menu.h"
-#include "Scene_Touhou.h"
 #include "MusicPlayer.h"
 #include <memory>
 #include "Scene_Options.h"
 
-void Scene_Menu::onEnd()
+void Scene_Options::onEnd()
 {
 	_game->window().close();
 }
 
-Scene_Menu::Scene_Menu(GameEngine* gameEngine)
+Scene_Options::Scene_Options(GameEngine* gameEngine)
 	: Scene(gameEngine)
 {
 	init();
 }
 
-void Scene_Menu::init()
+void Scene_Options::init()
 {
 	MusicPlayer::getInstance().play("menuTheme");
 	MusicPlayer::getInstance().setVolume(5);
@@ -29,11 +28,10 @@ void Scene_Menu::init()
 
 	m_title = "TOUHOU: Darkness of the Void";
 	m_menuStrings.emplace_back("Start");
-	//m_menuStrings.emplace_back("Options");
+	m_menuStrings.emplace_back("Options");
 	m_menuStrings.emplace_back("Quit");
 
-	m_levelPaths.emplace_back("../level1.txt");
-	//m_levelPaths.emplace_back("../options.txt");
+	m_levelPaths.emplace_back(1);
 	//m_levelPaths.emplace_back(2);
 
 	m_menuText.setFont(Assets::getInstance().getFont("main"));
@@ -42,19 +40,19 @@ void Scene_Menu::init()
 	m_menuText.setCharacterSize(CHAR_SIZE);
 }
 
-void Scene_Menu::updateView(const sf::Vector2u& size) {
+void Scene_Options::updateView(const sf::Vector2u& size) {
 	sf::View view = _game->window().getView();
 	view.setSize(static_cast<float>(size.x), static_cast<float>(size.y));
 	view.setCenter(size.x / 2.f, size.y / 2.f);
 	_game->window().setView(view);
 }
 
-void Scene_Menu::update(sf::Time dt)
+void Scene_Options::update(sf::Time dt)
 {
 	_entityManager.update();
 }
 
-void Scene_Menu::sRender()
+void Scene_Options::sRender()
 {
 	sf::View view = _game->window().getView();
 	sf::Vector2u windowSize = _game->window().getSize();
@@ -118,7 +116,7 @@ void Scene_Menu::sRender()
 	}
 }
 
-void Scene_Menu::sDoAction(const Command& action)
+void Scene_Options::sDoAction(const Command& action)
 {
 	if (action.type() == "START")
 	{
@@ -132,9 +130,9 @@ void Scene_Menu::sDoAction(const Command& action)
 		}
 		else if (action.name() == "PLAY")
 		{
-			if (m_menuIndex == 0) // Start option
+			if (m_menuIndex == 0) // Options option
 			{
-				_game->changeScene("PLAY", std::make_shared<Scene_Touhou>(_game, m_levelPaths[m_menuIndex]));
+				_game->changeScene("PLAY", std::make_shared<Scene_Options>(_game, m_levelPaths[m_menuIndex]));
 			}
 			else if (m_menuIndex == 1) // Quit option
 			{

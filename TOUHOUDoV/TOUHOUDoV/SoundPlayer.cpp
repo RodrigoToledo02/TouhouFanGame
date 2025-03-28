@@ -32,10 +32,10 @@ SoundPlayer& SoundPlayer::getInstance() {
 }
 
 void SoundPlayer::play(String effect) {
-	play(effect, getListnerPosition());
+	play(effect, getListnerPosition(), volume);
 }
 
-void SoundPlayer::play(String effect, sf::Vector2f position) {
+void SoundPlayer::play(String effect, sf::Vector2f position, float volume) {
 	m_sounds.push_back(sf::Sound());
 	sf::Sound& sound = m_sounds.back();
 
@@ -44,6 +44,7 @@ void SoundPlayer::play(String effect, sf::Vector2f position) {
 	sound.setPosition(position.x, 0.f, -position.y);   // sounds are in the plane
 	sound.setAttenuation(Attenuation);
 	sound.setMinDistance(MinDistance3D);
+	sound.setVolume(volume);
 
 	sound.play();
 }

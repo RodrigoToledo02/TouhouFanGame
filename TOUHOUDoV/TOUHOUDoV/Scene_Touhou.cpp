@@ -95,7 +95,13 @@ void Scene_Touhou::init(const std::string& levelPath) {
 	_backgroundCooldownText.setFont(Assets::getInstance().getFont("Arial"));
 	_backgroundCooldownText.setCharacterSize(20);
 	_backgroundCooldownText.setFillColor(sf::Color::White);
-	_backgroundCooldownText.setString("Switch Background CD: 0s");
+	_backgroundCooldownText.setString("Switch Background CD: Ready~");
+
+	//Circle cleanup
+	m_expandingCircle.setFillColor(sf::Color::Transparent);
+	m_expandingCircle.setOutlineColor(sf::Color::Red);
+	m_expandingCircle.setOutlineThickness(2.f);
+	m_expandingCircle.setRadius(0.f);
 }
 
 void Scene_Touhou::update(sf::Time dt) {
@@ -487,6 +493,20 @@ void Scene_Touhou::sRender() {
 	if (_isPaused) {
 		drawPauseOverlay();
 	}
+
+	if (m_isExpandingCircleActive) {
+		// Calculate the intersection of the expanding circle with the background bounds
+		sf::FloatRect circleBounds(
+			m_expandingCircle.getPosition().x - m_expandingCircle.getRadius(),
+			m_expandingCircle.getPosition().y - m_expandingCircle.getRadius(),
+			m_expandingCircle.getRadius() * 2,
+			m_expandingCircle.getRadius() * 2
+		);
+
+		if (backgroundBounds.intersects(circleBounds)) {
+			_game->window().draw(m_expandingCircle);
+		}
+	}
 }
 
 void Scene_Touhou::drawPauseOverlay() {
@@ -786,9 +806,12 @@ void Scene_Touhou::sMovement(sf::Time dt) {
 						tfm.vel.x += 25.f;
 						firstTimePassing1200 = false;
 						auto gun = _player->addComponent<CGun>();
-						gun.fireRate = 60;
+						gun.countdown = sf::Time::Zero;
+						gun.spreadLevel = 0;
+						gun.isFiring = true;
+						gun.fireRate = 65;
 					}
-					const auto updatedX = tfm.vel.x + 25.f;
+					//const auto updatedX = tfm.vel.x + 25.f;
 					tfm.pos.y += tfm.vel.y * dt.asSeconds();
 					tfm.pos.x += tfm.vel.x * dt.asSeconds();
 					tfm.angle += tfm.angVel * dt.asSeconds();
@@ -880,9 +903,9 @@ void Scene_Touhou::spawnMisille() {
 				.getAnimation("Missile")).animation.getBB();
 
 			missile->addComponent<CBoundingBox>(bb);
-			SoundPlayer::getInstance().play("LaunchMissile", pos);
+			SoundPlayer::getInstance().play("LaunchMissile", pos, 0);
 
-			SoundPlayer::getInstance().play("LaunchMissile", pos);
+			SoundPlayer::getInstance().play("LaunchMissile", pos, 0);
 		}
 	}
 }
@@ -922,7 +945,8 @@ void Scene_Touhou::sGunUpdate(sf::Time dt) {
 
 					lastCheckedHP = bossCurrentHP;
 
-					gun.cooldown = sf::seconds(3);
+					despawnAllBullets();
+					gun.cooldown = sf::seconds(5);
 				}
 			}
 
@@ -936,18 +960,20 @@ void Scene_Touhou::sGunUpdate(sf::Time dt) {
 			//
 			// when firing
 			//
-			if (gun.isFiring && gun.countdown < sf::Time::Zero) {
+			if (gun.isFiring && gun.countdown <= sf::Time::Zero) {
 				gun.isFiring = false;
 				gun.countdown = _config.fireInterval / (1.f + gun.fireRate);
 
 				auto pos = e->getComponent<CTransform>().pos;
-				switch (gun.spreadLevel = 4) {
+				switch (gun.spreadLevel) {
 				case 0:
 					if (isPlayer)
 					{
-						gun.fireRate = 50;
-						spawnBullet(pos + sf::Vector2f(-20.f, 0.f), isBossEnemy, "WhiteKnife");
-						spawnBullet(pos + sf::Vector2f(20.f, 0.f), isBossEnemy, "WhiteKnife");
+						gun.fireRate = 65;
+						if (!_player->getComponent<CInput>().lshift) {
+							spawnBullet(pos + sf::Vector2f(-20.f, 0.f), isBossEnemy, "WhiteKnife");
+							spawnBullet(pos + sf::Vector2f(20.f, 0.f), isBossEnemy, "WhiteKnife");
+						}
 					}
 					else
 					{
@@ -959,8 +985,10 @@ void Scene_Touhou::sGunUpdate(sf::Time dt) {
 				case 1:
 					if (isPlayer)
 					{
-						gun.fireRate = 70;
-						spawnBullet(pos + sf::Vector2f(0.f, 0.f), isBossEnemy, "WhiteKnife");
+						if (_player->getComponent<CInput>().lshift) {
+							gun.fireRate = 60;
+							spawnBullet(pos + sf::Vector2f(0.f, 0.f), isBossEnemy, "WhiteKnife");
+						}
 					}
 					break;
 
@@ -1132,11 +1160,11 @@ void Scene_Touhou::spawnBullet(sf::Vector2f pos, bool isEnemy, const std::string
 	sf::Vector2f center = _worldView.getCenter();
 	if (isEnemy) {
 		speed = _config.bulletSpeed;
-		SoundPlayer::getInstance().play("EnemyGunfire", center);
+		SoundPlayer::getInstance().play("EnemyGunfire", center, 50.f);
 	}
 	else {
 		speed = -_config.bulletSpeed;
-		SoundPlayer::getInstance().play("Damage01", center);
+		SoundPlayer::getInstance().play("Damage01", center, 50.f);
 	}
 
 	auto bullet = _entityManager.addEntity(isEnemy ? "EnemyBullet" : "PlayerBullet");
@@ -1164,21 +1192,6 @@ void Scene_Touhou::spawnBullet(sf::Vector2f pos, bool isEnemy, const std::string
 
 	sf::Vector2f direction(0.f, speed);
 
-	/*
-	auto& boss = _entityManager.getEntities("bossEnemy");
-	auto spreadLevel = boss.front()->getComponent<CGun>().spreadLevel;
-	if (!isEnemy && _player->getComponent<CInput>().lshift == true) {
-		if (!boss.empty()) {
-			auto bossPos = boss.front()->getComponent<CTransform>().pos;
-			direction = normalize(bossPos - pos);
-			bullet->getComponent<CTransform>().vel = direction * std::abs(speed);
-		}
-	}
-	else if (isEnemy && spreadLevel == 3) {
-		auto playerPos = _player->getComponent<CTransform>().pos;
-		direction = normalize(playerPos - pos) * std::abs(speed);
-	}*/
-
 	auto boss = _entityManager.getEntities("bossEnemy");
 	if (!isEnemy && _player->getComponent<CInput>().lshift == true) {
 		if (!boss.empty()) {
@@ -1204,8 +1217,16 @@ void Scene_Touhou::spawnBullet(sf::Vector2f pos, bool isEnemy, const std::string
 }
 
 void Scene_Touhou::despawnAllBullets() {
+	auto boss = _entityManager.getEntities("bossEnemy").front();
+	auto bossPos = boss->getComponent<CTransform>().pos;
+
+	m_expandingCircle.setPosition(bossPos);
+	m_expandingCircle.setRadius(0.f);
+	m_isExpandingCircleActive = true;
+
+	// Stop all bullets
 	for (auto const& bullet : _entityManager.getEntities("EnemyBullet")) {
-		bullet->destroy();
+		bullet->getComponent<CTransform>().vel = sf::Vector2f(0.f, 0.f);
 	}
 }
 
@@ -1417,7 +1438,7 @@ void Scene_Touhou::checkBulletCollision() {
 				continue;
 			}
 			else if (overlap.x > 0 && overlap.y > 0) {
-				e->getComponent<CHealth>().hp -= 40;
+				e->getComponent<CHealth>().hp -= 100;
 				bullet->destroy();
 				checkIfDead(e);
 			}
@@ -1477,7 +1498,7 @@ void Scene_Touhou::checkIfDead(sPtrEntt e) {
 			}
 			if (e->getTag() == "bossEnemy") {
 				// Boss is killed, transition to main menu and reset game state
-				_game->changeScene("MENU", nullptr, false);
+				_game->changeScene("MENU", nullptr, true);
 				resetGameState();
 				MusicPlayer::getInstance().play("menuTheme");
 			}
@@ -1534,6 +1555,29 @@ void Scene_Touhou::sAnimation(sf::Time dt) {
 			if (anim.animation.hasEnded()) { // for explosion
 				e->destroy();
 			}
+		}
+	}
+
+	if (m_isExpandingCircleActive) {
+		float radius = m_expandingCircle.getRadius();
+		radius += m_expandingCircleSpeed * dt.asSeconds();
+		m_expandingCircle.setRadius(radius);
+		m_expandingCircle.setOrigin(radius, radius);
+
+		float outlineThickness = m_expandingCircle.getOutlineThickness();
+
+		// Check for collisions with bullets
+		for (auto const& bullet : _entityManager.getEntities("EnemyBullet")) {
+			auto bulletPos = bullet->getComponent<CTransform>().pos;
+			float distance = dist(m_expandingCircle.getPosition(), bulletPos);
+			if (distance >= radius - outlineThickness && distance <= radius + outlineThickness) {
+				bullet->destroy();
+			}
+		}
+
+		// Stop the animation if the circle is too large
+		if (radius > _worldView.getSize().x) {
+			m_isExpandingCircleActive = false;
 		}
 	}
 }

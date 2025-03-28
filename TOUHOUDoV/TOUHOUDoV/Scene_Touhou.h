@@ -38,7 +38,12 @@ class Scene_Touhou : public Scene
 	sf::Text							_pauseMenuText;
 	std::vector<std::string>			_pauseMenuOptions{ "Continue", "Quit" };
 	bool								bulletsMoving{ true };
-	sf::Time							bulletMovementTimer{ sf::seconds(3) };
+	sf::Time							bulletMovementTimer{ sf::seconds(0) };
+	sf::Vector2f						bossTargetPosition;
+	bool								isBossMovingToTarget = false;
+	sf::CircleShape						m_expandingCircle;
+	bool								m_isExpandingCircleActive{ false };
+	float								m_expandingCircleSpeed{ 200.f };
 
 	//UI
 	sf::Text _scoreText;
