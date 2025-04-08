@@ -12,7 +12,15 @@ struct SpawnPoint {
 	}
 };
 
-struct TemporaryText {
+struct ViewBounds {
+	float left;
+	float right;
+	float top;
+	float bot;
+};
+
+struct UIText {
+	//UI
 	sf::Text text;
 	sf::Time lifetime;
 };
@@ -50,8 +58,13 @@ class Scene_Touhou : public Scene
 	bool								m_isExpandingCircleActive{ false };
 	float								m_expandingCircleSpeed{ 300.f };
 	int									_score{ 0 };
-	std::queue<int>						_lastSpreadLevels;
+	int						lastSpreadLevel;
 	int _lastScoreThreshold = 0;
+	bool bossHasPassed1200{ false };
+	int bulletIndex = 0;
+	int currentColumn = 0;
+	sf::Time bulletSpawnTimer = sf::Time::Zero;
+	sf::Time columnSpawnTimer = sf::Time::Zero;
 
 	//UI
 	sf::Text							_scoreText;
@@ -59,10 +72,7 @@ class Scene_Touhou : public Scene
 	sf::Text							_spellCardsText;
 	sf::Text							_parryText;
 	sf::Text							_backgroundCooldownText;
-	std::vector<TemporaryText>			_temporaryTexts;
-	//const sf::Texture& _whiteHeartTexture;
-
-	void					moveEnemyBullets(sf::Time dt);
+	std::vector<UIText>					_temporaryTexts;
 
 	//systems
 	void                    sMovement(sf::Time dt);
@@ -71,17 +81,25 @@ class Scene_Touhou : public Scene
 	void                    sCollisions();
 	void                    sUpdate(sf::Time dt);
 	void                    sGunUpdate(sf::Time dt);
+	void updateBossSpreadLevel(CGun& gun, int bossCurrentHP);
 	void                    sAutoPilot(sf::Time dt);
 	void                    sGuideMissiles(sf::Time dt);
 	void                    sAnimation(sf::Time dt);
 
+	// Movements
+
+	void                    movementBoss(sf::Time dt);
+
+	void					movementEnemyBullet(sf::Time dt);
+
 	// helper functions
 	void					despawnAllBullets();
-	bool                    isGameOver();
 	void                    dropPickup(sf::Vector2f pos);
 	void                    startAnimation(sPtrEntt e, std::string animation);
 	void                    checkIfDead(sPtrEntt e);
 	void					resetGameState();
+
+	void startGame();
 
 	void                    checkSpellCardCollision();
 	void                    checkBulletCollision();
@@ -92,6 +110,20 @@ class Scene_Touhou : public Scene
 	void                    destroyOutsideBattlefieldBounds();
 	void                    spawnEnemyPlanes(SpawnPoint sp);
 	void					spawnBoss(SpawnPoint sp);
+
+	void handleFiring(CGun& gun, const sf::Vector2f& pos, bool isPlayer, bool isBossEnemy, const std::string& bulletTexture, const std::string& lineTexture);
+
+	void fireSpread0(CGun& gun, const sf::Vector2f& pos, bool isPlayer, bool isBossEnemy, const std::string& bulletTexture);
+
+	void fireSpread1(CGun& gun, const sf::Vector2f& pos, bool isPlayer, bool isBossEnemy);
+
+	void fireSpread2(CGun& gun, const sf::Vector2f& pos, bool isBossEnemy, const std::string& lineTexture);
+
+	void fireSpread3(CGun& gun, const sf::Vector2f& pos, bool isBossEnemy, const std::string& bulletTexture);
+
+	void fireSpread4(CGun& gun, const sf::Vector2f& pos, bool isBossEnemy, const std::string& bulletTexture);
+
+	void fireSpread5(CGun& gun, const sf::Vector2f& pos, bool isBossEnemy, const std::string& bulletTexture);
 
 	void                    spawnBullet(sf::Vector2f pos, bool isEnemy, const std::string& spriteName);
 	void	                registerActions();
@@ -105,12 +137,22 @@ class Scene_Touhou : public Scene
 	void	                onEnd() override;
 	void                    drawAABB(std::shared_ptr<Entity> e);
 	void                    drawCameraView();
-
-	void					changeBackground();
 	void                    drawHP(sPtrEntt e);
 	void                    drawAmmo(sPtrEntt e);
 	void                    drawEntt(sPtrEntt e);
 	void					playerSize(bool smaller);
+
+	ViewBounds getViewBounds() const {
+		sf::Vector2f center = _worldView.getCenter();
+		sf::Vector2f viewHalfSize = _game->windowSize() / 2.f;
+
+		return {
+			center.x - (viewHalfSize.x / 2.f),
+			center.x + (viewHalfSize.x / 3.f),
+			center.y - viewHalfSize.y,
+			center.y + viewHalfSize.y
+		};
+	}
 
 public:
 	Scene_Touhou(GameEngine* gameEngine, const std::string& levelPath);

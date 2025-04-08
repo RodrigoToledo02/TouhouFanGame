@@ -51,18 +51,12 @@ void Scene_Touhou::init(const std::string& levelPath) {
 	loadLevel(levelPath);
 	registerActions();
 
-	auto& center = _worldView.getCenter();
-	sf::Vector2f viewHalfSize = _game->windowSize() / 2.f;
+	auto bounds = getViewBounds();
 
-	auto left = center.x - (viewHalfSize.x / 2.f);
-	auto right = center.x + (viewHalfSize.x / 3.f);
-	auto top = center.y - viewHalfSize.y;
-	auto bot = center.y + viewHalfSize.y;
+	auto centerX = bounds.left + (bounds.right - bounds.left) / 2.f;
+	sf::Vector2f bottomPos{ centerX, bounds.bot };
 
-	auto centerX = left + (right - left) / 2.f;
-	sf::Vector2f bottomPos{ centerX, bot };
-
-	sf::Vector2f spawnPos{ _worldView.getSize().x / 2.f, top - _worldView.getSize().y / 2.f };
+	sf::Vector2f spawnPos{ _worldView.getSize().x / 2.f, bounds.top - _worldView.getSize().y / 2.f };
 
 	_worldView.setCenter(spawnPos);
 
@@ -336,20 +330,14 @@ void Scene_Touhou::drawEntt(sPtrEntt e) {
 }
 
 void Scene_Touhou::sRender() {
+	auto& center = _worldView.getCenter();
 	_game->window().setView(_worldView);
 	_game->window().clear(sf::Color::White);
-
-	auto& center = _worldView.getCenter();
-	sf::Vector2f viewHalfSize = _game->windowSize() / 2.f;
-
-	auto left = center.x - (viewHalfSize.x / 2.f);
-	auto right = center.x + (viewHalfSize.x / 3.f);
-	auto top = center.y - viewHalfSize.y;
-	auto bot = center.y + viewHalfSize.y;
+	auto bounds = getViewBounds();
 
 	// Position UI elements to the right of the background
-	float uiX = right + 20.f;
-	float uiY = top + 20.f;
+	float uiX = bounds.right + 20.f;
+	float uiY = bounds.top + 20.f;
 
 	sf::FloatRect backgroundBounds;
 	if (backgroundToggle) {
@@ -390,7 +378,7 @@ void Scene_Touhou::sRender() {
 
 			if (e->getComponent<CSprite>().has) {
 				auto& sprite = e->getComponent<CSprite>().sprite;
-				sprite.setPosition(left, top);
+				sprite.setPosition(bounds.left, bounds.top);
 				_game->window().draw(sprite);
 			}
 		}
@@ -417,9 +405,9 @@ void Scene_Touhou::sRender() {
 
 			if (e->getComponent<CSprite>().has) {
 				auto& sprite = e->getComponent<CSprite>().sprite;
-				sprite.setPosition(left, top);
+				sprite.setPosition(bounds.left, bounds.top);
 
-				sprite.setScale((right - left) / sprite.getTexture()->getSize().x, (bot - top) / sprite.getTexture()->getSize().y);
+				sprite.setScale((bounds.right - bounds.left) / sprite.getTexture()->getSize().x, (bounds.bot - bounds.top) / sprite.getTexture()->getSize().y);
 				_game->window().draw(sprite);
 			}
 		}
@@ -492,7 +480,7 @@ void Scene_Touhou::sRender() {
 			float healthBarWidth = backgroundBounds.width * 0.9f * healthPercentage;
 			sf::RectangleShape healthBar(sf::Vector2f(100.f, 20.f));
 			healthBar.setFillColor(sf::Color::Red);
-			healthBar.setPosition(center.x, top - 30.f);
+			healthBar.setPosition(center.x, bounds.top - 30.f);
 			_game->window().draw(healthBar);
 			drawHP(e);
 		}
@@ -526,20 +514,14 @@ void Scene_Touhou::sRender() {
 
 void Scene_Touhou::drawPauseOverlay() {
 	auto size = _game->window().getSize();
-
+	auto bounds = getViewBounds();
 	auto& center = _worldView.getCenter();
-	sf::Vector2f viewHalfSize = _game->windowSize() / 2.f;
-
-	auto left = center.x - (viewHalfSize.x / 2.f);
-	auto right = center.x + (viewHalfSize.x / 3.f);
-	auto top = center.y - viewHalfSize.y;
-	auto bot = center.y + viewHalfSize.y;
 
 	_game->window().setView(_worldView); // Set the current view
 
-	sf::RectangleShape overlay(sf::Vector2f(right - left, bot - top));
+	sf::RectangleShape overlay(sf::Vector2f(bounds.right - bounds.left, bounds.bot - bounds.top));
 	overlay.setFillColor(sf::Color(0, 0, 0, 150)); // Semi-transparent black
-	overlay.setPosition(left, top);
+	overlay.setPosition(bounds.left, bounds.top);
 	_game->window().draw(overlay);
 
 	_pauseMenuText.setFont(Assets::getInstance().getFont("main"));
@@ -637,26 +619,19 @@ void Scene_Touhou::animatePlayer() {
 }
 
 void Scene_Touhou::adjustPlayerPosition() {
+	auto bounds = getViewBounds();
 	// don't adjust position if dead
 	if (_player->getComponent<CState>().state == "dead")
 		return;
-
-	auto& center = _worldView.getCenter();
-	sf::Vector2f viewHalfSize = _game->windowSize() / 2.f;
-
-	auto left = center.x - (viewHalfSize.x / 2.f);
-	auto right = center.x + (viewHalfSize.x / 3.f);
-	auto top = center.y - viewHalfSize.y;
-	auto bot = center.y + viewHalfSize.y;
 
 	auto& player_pos = _player->getComponent<CTransform>().pos;
 	auto halfSize = _player->getComponent<CBoundingBox>().halfSize;
 
 	// keep player in bounds
-	player_pos.x = std::max(player_pos.x, left + halfSize.x);
-	player_pos.x = std::min(player_pos.x, right - halfSize.x);
-	player_pos.y = std::max(player_pos.y, top + halfSize.y);
-	player_pos.y = std::min(player_pos.y, bot - halfSize.y);
+	player_pos.x = std::max(player_pos.x, bounds.left + halfSize.x);
+	player_pos.x = std::min(player_pos.x, bounds.right - halfSize.x);
+	player_pos.y = std::max(player_pos.y, bounds.top + halfSize.y);
+	player_pos.y = std::min(player_pos.y, bounds.bot - halfSize.y);
 }
 
 void Scene_Touhou::loadLevel(const std::string& path) {
@@ -740,154 +715,25 @@ void Scene_Touhou::loadLevel(const std::string& path) {
 	config.close();
 }
 
+#pragma region Movement
 void Scene_Touhou::sMovement(sf::Time dt) {
-	bulletMovementTimer -= dt;
-	if (bulletMovementTimer <= sf::Time::Zero) {
-		bulletsMoving = !bulletsMoving;
-		bulletMovementTimer = sf::seconds(3);
-	}
-
-	// Add a flag to track if the player position has been retrieved
-	bool playerPosRetrieved = false;
-	sf::Vector2f playerPos;
-	bool bossHasPassed1200 = false;
-	int bossSpreadLevel = 1;
-	String bossState = "";
-
-	auto& center = _worldView.getCenter();
-	sf::Vector2f viewHalfSize = _game->windowSize() / 2.f;
-
-	auto left = center.x - (viewHalfSize.x / 2.f);
-	auto right = center.x + (viewHalfSize.x / 3.f);
-
 	playerMovement();
 	animatePlayer();
-
-	for (auto e : _entityManager.getEntities("bossEnemy")) {
-		if (e->hasComponent<CGun>()) {
-			bossSpreadLevel = e->getComponent<CGun>().spreadLevel;
-			bossState = e->getComponent<CState>().state;
-			break;
-		}
-	}
+	movementBoss(dt);
+	movementEnemyBullet(dt);
 
 	// move all objects
 	for (auto e : _entityManager.getEntities()) {
-		if (e->hasComponent<CTransform>()) {
+		if (e->hasComponent<CTransform>() &&
+			e->getTag() != "bossEnemy" &&
+			e->getTag() != "EnemyBullet")
+		{
 			auto& tfm = e->getComponent<CTransform>();
 
-			auto boss = e->getTag() == "bossEnemy";
-			auto eBullet = e->getTag() == "EnemyBullet";
 			auto pBullet = e->getTag() == "PlayerBullet";
 			auto sCard = e->getTag() == "spellCard";
 
-			if (eBullet)
-			{
-				if (bossSpreadLevel == 5) {
-					int bulletCount = _entityManager.getEntities("EnemyBullet").size();
-					if (bulletCount <= 100)
-					{
-						tfm.vel.y = 0;
-						tfm.pos.y += tfm.vel.y * dt.asSeconds();
-					}
-					else
-					{
-						tfm.vel.y = 200.f;
-						tfm.pos.y += tfm.vel.y * dt.asSeconds();
-					}
-				}
-				else if (bossSpreadLevel == 4) {
-					if (bulletsMoving) {
-						tfm.vel.y = 0.f;
-						tfm.pos.y += (tfm.vel.y * 0.1) * dt.asSeconds();
-						tfm.pos.x += (tfm.vel.x * 0.1) * dt.asSeconds();
-					}
-					else {
-						tfm.vel.y = 200.f;
-						tfm.pos.y += (tfm.vel.y * 0.15) * dt.asSeconds();
-						tfm.pos.x += (tfm.vel.x * 0) * dt.asSeconds();
-					}
-				}
-				else if (bossSpreadLevel == 3) {
-					tfm.pos.y += (tfm.vel.y * 0.5) * dt.asSeconds();
-					tfm.pos.x += (tfm.vel.x * 0.5) * dt.asSeconds();
-				}
-				else if (bossSpreadLevel == 2) {
-					tfm.pos.y += (tfm.vel.y * 0.5) * dt.asSeconds();
-				}
-				else
-				{
-					tfm.pos.y += (tfm.vel.y * 0.7) * dt.asSeconds();
-				}
-			}
-			else if (boss)
-			{
-				auto& state = e->getComponent<CState>().state;
-
-				if (state == "BossInit") {
-					if (tfm.pos.y < center.y - 300.f && !bossHasPassed1200) {
-						// Move the boss to its initial position
-						tfm.pos += tfm.vel * dt.asSeconds();
-						tfm.angle += tfm.angVel * dt.asSeconds();
-					}
-					else {
-						// Transition to the active state
-						bossHasPassed1200 = true;
-						state = "BossActive";
-
-						if (firstTimePassing1200) {
-							e->addComponent<CGun>();
-							tfm.vel.x += 25.f;
-							firstTimePassing1200 = false;
-
-							// Add gun and spell card to the player
-							auto& gun = _player->addComponent<CGun>();
-							auto& spellCard = _player->addComponent<CSpellCard>();
-							spellCard.spellCardCount = 3;
-							gun.countdown = sf::Time::Zero;
-							gun.spreadLevel = 0;
-							gun.isFiring = false;
-							gun.fireRate = 65;
-						}
-					}
-				}
-				else if (state == "BossRetreat") {
-					// Move the boss
-					if (tfm.pos.y > center.y - 301.f || tfm.pos.x < center.x - viewHalfSize.x) {
-						sf::Vector2f targetPosition(center.x, center.y - 301.f);
-						sf::Vector2f direction = normalize(targetPosition - tfm.pos);
-						tfm.pos += direction * _config.enemySpeed * dt.asSeconds();
-					}
-					else if (e->getComponent<CGun>().cooldown > sf::Time::Zero) {
-						state = "BossIdle";
-					}
-					else {
-						state = "BossAcive";
-					}
-				}
-				else if (state == "BossActive") {
-					// Boss active behavior
-					tfm.pos.y += tfm.vel.y * dt.asSeconds();
-					tfm.pos.x += tfm.vel.x * dt.asSeconds();
-					tfm.angle += tfm.angVel * dt.asSeconds();
-
-					// Bounce the boss within the bounds
-					if (tfm.pos.x < left || tfm.pos.x > right) {
-						tfm.vel.x = -tfm.vel.x;
-					}
-					if (tfm.pos.y < center.y - 300.f || tfm.pos.y > center.y - 100.f) {
-						tfm.vel.y = -tfm.vel.y;
-					}
-
-					tfm.pos.x = std::clamp(tfm.pos.x, left, right);
-					tfm.pos.y = std::clamp(tfm.pos.y, center.y - 300.f, center.y - 100.f);
-				}
-				else if (state == "BossIdle") {
-					// Boss idle behavior (e.g., no movement)
-					tfm.vel = sf::Vector2f(0.f, 0.f);
-				}
-			}
-			else if (pBullet)
+			if (pBullet)
 			{
 				tfm.pos += tfm.vel * dt.asSeconds();
 				tfm.angle = 90 + bearing(tfm.vel);
@@ -906,6 +752,142 @@ void Scene_Touhou::sMovement(sf::Time dt) {
 		}
 	}
 }
+
+void Scene_Touhou::movementBoss(sf::Time dt) {
+	const float dtSec = dt.asSeconds();
+	const auto& center = _worldView.getCenter();
+	sf::Vector2f viewHalfSize = _game->windowSize() / 2.f;
+	auto bounds = getViewBounds();
+	auto centerBounds = bounds.left + (bounds.right - bounds.left) / 2.f;
+	String bossState = "";
+
+	// Get boss state from first boss entity with CGun
+	for (auto e : _entityManager.getEntities("bossEnemy")) {
+		if (e->hasComponent<CGun>()) {
+			bossState = e->getComponent<CState>().state;
+			break;
+		}
+	}
+
+	for (auto e : _entityManager.getEntities("bossEnemy")) {
+		if (!e->hasComponent<CTransform>()) continue;
+
+		auto& tfm = e->getComponent<CTransform>();
+		auto& state = e->getComponent<CState>().state;
+
+		if (state == "BossInit") {
+			if (tfm.pos.y < center.y - 300.f && !bossHasPassed1200) {
+				tfm.pos += tfm.vel * dtSec;
+				tfm.angle += tfm.angVel * dtSec;
+				continue;
+			}
+
+			// Transition to active state
+			bossHasPassed1200 = true;
+			state = "BossActive";
+
+			if (firstTimePassing1200) {
+				e->addComponent<CGun>();
+				tfm.vel.x += 25.f;
+				firstTimePassing1200 = false;
+				startGame();
+			}
+		}
+
+		else if (state == "BossRetreat") {
+			sf::Vector2f target(centerBounds, center.y - 301.f);
+			if (std::abs(tfm.pos.x - target.x) <= 1.f && std::abs(tfm.pos.y - target.y) <= 1.f) {
+				state = "BossIdle";
+				tfm.pos = target;
+				continue;
+			}
+
+			sf::Vector2f dir = normalize(target - tfm.pos);
+			tfm.pos += dir * _config.enemySpeed * dtSec;
+		}
+
+		else if (state == "BossActive") {
+			tfm.pos += tfm.vel * dtSec;
+			tfm.angle += tfm.angVel * dtSec;
+
+			if (tfm.pos.x < bounds.left || tfm.pos.x > bounds.right) tfm.vel.x = -tfm.vel.x;
+			if (tfm.pos.y < center.y - 300.f || tfm.pos.y > center.y - 100.f) tfm.vel.y = -tfm.vel.y;
+		}
+
+		else if (state == "BossIdle") {
+			auto& gun = e->getComponent<CGun>();
+			if (gun.cooldown > sf::Time::Zero) {
+				tfm.vel = { 0.f, 0.f };
+			}
+			else {
+				state = "BossActive";
+				tfm.vel = { _config.enemySpeed, _config.enemySpeed };
+			}
+		}
+	}
+}
+
+void Scene_Touhou::movementEnemyBullet(sf::Time dt) {
+	bulletMovementTimer -= dt;
+	if (bulletMovementTimer <= sf::Time::Zero) {
+		bulletsMoving = !bulletsMoving;
+		bulletMovementTimer = sf::seconds(3);
+	}
+
+	// Get boss spread level
+	int bossSpreadLevel = 1;
+	for (auto e : _entityManager.getEntities("bossEnemy")) {
+		if (e->hasComponent<CGun>()) {
+			bossSpreadLevel = e->getComponent<CGun>().spreadLevel;
+			break;
+		}
+	}
+
+	const float dtSec = dt.asSeconds();
+	const bool moveBullets = bulletsMoving;
+	const int bulletCount = _entityManager.getEntities("EnemyBullet").size();
+
+	for (auto& e : _entityManager.getEntities("EnemyBullet")) {
+		if (!e->hasComponent<CTransform>()) continue;
+
+		auto& tfm = e->getComponent<CTransform>();
+
+		switch (bossSpreadLevel) {
+		case 5:
+			tfm.vel.y = (bulletCount <= 100) ? 0.f : 200.f;
+			tfm.pos.y += tfm.vel.y * dtSec;
+			break;
+
+		case 4:
+			if (moveBullets) {
+				tfm.vel.y = 0.f;
+				tfm.pos.y += (tfm.vel.y * 0.1f) * dtSec;
+				tfm.pos.x += (tfm.vel.x * 0.1f) * dtSec;
+			}
+			else {
+				tfm.vel.y = 200.f;
+				tfm.pos.y += (tfm.vel.y * 0.15f) * dtSec;
+				tfm.pos.x += 0.f;
+			}
+			break;
+
+		case 3:
+			tfm.pos.y += (tfm.vel.y * 0.5f) * dtSec;
+			tfm.pos.x += (tfm.vel.x * 0.5f) * dtSec;
+			break;
+
+		case 2:
+			tfm.pos.y += (tfm.vel.y * 0.5f) * dtSec;
+			break;
+
+		default:
+			tfm.pos.y += (tfm.vel.y * 0.7f) * dtSec;
+			break;
+		}
+	}
+}
+
+#pragma endregion
 
 void Scene_Touhou::sCollisions() {
 	checkSpellCardCollision();
@@ -951,7 +933,7 @@ void Scene_Touhou::sUpdate(sf::Time dt) {
 
 	if (_backgroundSwitchCooldown > sf::Time::Zero) {
 		_backgroundSwitchCooldown -= dt;
-		int cooldownSeconds = static_cast<int>(std::ceil(_backgroundSwitchCooldown.asSeconds()));
+		auto cooldownSeconds = static_cast<int>(std::ceil(_backgroundSwitchCooldown.asSeconds()));
 		_backgroundCooldownText.setString("Switch Background CD: " + std::to_string(cooldownSeconds) + "s");
 	}
 	else {
@@ -991,8 +973,6 @@ void Scene_Touhou::spawnSpellCard() {
 			auto& animation = spellCard->getComponent<CAnimation>().animation;
 			auto& sprite = animation.getSprite();
 
-			//sprite.setScale(1.f, 1.5f);
-
 			bb.x *= 1.5;
 			bb.y *= 1.5;
 			float radius = std::min(bb.x, bb.y) / 2.f;
@@ -1003,8 +983,6 @@ void Scene_Touhou::spawnSpellCard() {
 			spellCard->addComponent<CBoundingBox>(radius, radius);
 			spellCard->addComponent<CAutoPilot>();
 			spellCard->addComponent<CTransform>(playerPos, direction);
-
-			//SoundPlayer::getInstance().play("LaunchMissile", playerPos, 0);
 		}
 	}
 }
@@ -1016,10 +994,7 @@ void Scene_Touhou::fireBullet() {
 
 void Scene_Touhou::sGunUpdate(sf::Time dt) {
 	static sf::Time spreadChangeTimer = sf::seconds(5.f + (std::rand() % 6));
-	static sf::Time bulletSpawnTimer = sf::Time::Zero;
-	static sf::Time columnSpawnTimer = sf::Time::Zero;
-	static int bulletIndex = 0;
-	static int currentColumn = 0;
+
 	std::string bulletTexture = backgroundToggle ? "ShotWhite" : "ShotBlack";
 	std::string lineTexture = backgroundToggle ? "LineShot" : "LineShotBlack";
 
@@ -1037,225 +1012,186 @@ void Scene_Touhou::sGunUpdate(sf::Time dt) {
 
 			if (isBossEnemy && e->hasComponent<CHealth>()) {
 				int bossCurrentHP = e->getComponent<CHealth>().hp;
+
 				if ((lastCheckedHP - bossCurrentHP) >= 10000) {
-					std::uniform_int_distribution<int> dist(2, 5);
-
-					gun.spreadLevel = dist(rng);
-					_spellCardsText.setString("ATTACK: " + std::to_string(gun.spreadLevel));
-					std::cout << "New spread level: " << gun.spreadLevel << "\n";
-
-					lastCheckedHP = bossCurrentHP;
-
-					despawnAllBullets();
-					gun.cooldown = sf::seconds(8);
-					e->getComponent<CState>().state = "BossRetreat";
+					updateBossSpreadLevel(gun, bossCurrentHP);
 				}
 			}
 
-			if (gun.cooldown > sf::Time::Zero) {
-				continue;
-			}
+			if (gun.cooldown > sf::Time::Zero) continue;
 
 			if (isEnemy || isBossEnemy)
 				gun.isFiring = true;
 
-			//
-			// when firing
-			//
 			if (gun.isFiring && gun.countdown <= sf::Time::Zero) {
 				gun.isFiring = false;
 				gun.countdown = _config.fireInterval / (1.f + gun.fireRate);
-
 				auto pos = e->getComponent<CTransform>().pos;
-				switch (gun.spreadLevel) {
-				case 0:
-					if (isPlayer)
-					{
-						gun.fireRate = 65;
-						if (!_player->getComponent<CInput>().lshift) {
-							spawnBullet(pos + sf::Vector2f(-20.f, 0.f), isBossEnemy, "WhiteKnife");
-							spawnBullet(pos + sf::Vector2f(20.f, 0.f), isBossEnemy, "WhiteKnife");
-							spawnBullet(pos + sf::Vector2f(-40.f, 0.f), isBossEnemy, "WhiteKnife");
-							spawnBullet(pos + sf::Vector2f(40.f, 0.f), isBossEnemy, "WhiteKnife");
-						}
-					}
-					else
-					{
-						gun.fireRate = gun.originalFireRate;
-						spawnBullet(pos + sf::Vector2f(-20.f, 0.f), isBossEnemy, bulletTexture);
-						spawnBullet(pos + sf::Vector2f(20.f, 0.f), isBossEnemy, bulletTexture);
-					}
-					break;
-				case 1:
-					if (isPlayer)
-					{
-						if (_player->getComponent<CInput>().lshift) {
-							gun.fireRate = 60;
-							spawnBullet(pos + sf::Vector2f(0.f, 0.f), isBossEnemy, "WhiteKnife");
-						}
-					}
-					break;
+				handleFiring(gun, pos, isPlayer, isBossEnemy, bulletTexture, lineTexture);
+			}
+		}
+	}
+}
 
-				case 2:
-					if (isBossEnemy) {
-						gun.fireRate = gun.originalFireRate;
-						bulletSpawnTimer = sf::Time::Zero;
-						bulletIndex = 0;
-						spawnBullet(pos + sf::Vector2f(0.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(-65.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(-130.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(-195.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(-260.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(-325.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(-390.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(-455.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(-520.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(-585.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(-650.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(-715.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(-780.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(-845.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(65.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(130.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(195.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(260.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(325.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(390.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(455.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(520.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(585.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(650.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(715.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(780.f, -500.f), isBossEnemy, lineTexture);
-						spawnBullet(pos + sf::Vector2f(845.f, -500.f), isBossEnemy, lineTexture);
-					}
-					break;
+void Scene_Touhou::updateBossSpreadLevel(CGun& gun, int bossCurrentHP) {
+	std::uniform_int_distribution<int> dist(2, 5);
+	int newSpreadLevel;
 
-				case 3:
-				{
-					if (isBossEnemy) {
-						gun.fireRate = gun.originalFireRate;
-						bulletSpawnTimer = sf::Time::Zero;
-						bulletIndex = 0;
-						float circleRadius = 50.f;
-						int bulletsPerCircle = 10;
-						float angleStep = 360.f / bulletsPerCircle; // Angle between each bullet
+	do {
+		newSpreadLevel = dist(rng);
+	} while (newSpreadLevel == lastSpreadLevel);
 
-						// Positions for the 3 circles in a triangular shape
-						sf::Vector2f circleOffsets[3] = {
-							sf::Vector2f(0.f, 100.f), // top circle
-							sf::Vector2f(-150.f, -100.f),  // bottom right circle
-							sf::Vector2f(150.f, -100.f)  // bottom left circle
-						};
+	gun.spreadLevel = newSpreadLevel;
+	lastSpreadLevel = newSpreadLevel;
+	lastCheckedHP = bossCurrentHP;
 
-						// Loop through each circle and spawn bullets in a circular pattern
-						for (int i = 0; i < 3; ++i) {
-							sf::Vector2f circleCenter = pos + circleOffsets[i];
+	despawnAllBullets();
+	gun.cooldown = sf::seconds(6);
+	for (auto& e : _entityManager.getEntities("bossEnemy")) {
+		if (e->hasComponent<CState>())
+		{
+			auto& state = e->getComponent<CState>().state;
+			state = "BossRetreat";
+		}
+	}
+}
 
-							// Spawn 10 bullets per circle
-							for (int j = 0; j < bulletsPerCircle; ++j) {
-								float angle = j * angleStep;  // Angle for each bullet
-								sf::Vector2f bulletPos = circleCenter + sf::Vector2f(
-									std::cos(degToRad(angle)) * circleRadius,  // X offset for the bullet
-									std::sin(degToRad(angle)) * circleRadius   // Y offset for the bullet
-								);
+void Scene_Touhou::handleFiring(CGun& gun, const sf::Vector2f& pos, bool isPlayer, bool isBossEnemy, const std::string& bulletTexture, const std::string& lineTexture) {
+	switch (gun.spreadLevel) {
+	case 0:
+		fireSpread0(gun, pos, isPlayer, isBossEnemy, bulletTexture);
+		break;
+	case 1:
+		fireSpread1(gun, pos, isPlayer, isBossEnemy);
+		break;
+	case 2:
+		fireSpread2(gun, pos, isBossEnemy, lineTexture);
+		break;
+	case 3:
+		fireSpread3(gun, pos, isBossEnemy, bulletTexture);
+		break;
+	case 4:
+		fireSpread4(gun, pos, isBossEnemy, bulletTexture);
+		break;
+	case 5:
+		fireSpread5(gun, pos, isBossEnemy, bulletTexture);
+		break;
+	default:
+		std::cerr << "Bad spread level firing gun\n";
+		break;
+	}
+}
 
-								spawnBullet(bulletPos, isBossEnemy, bulletTexture);
-							}
-						}
-					}
-				}
-				break;
+void Scene_Touhou::fireSpread0(CGun& gun, const sf::Vector2f& pos, bool isPlayer, bool isBossEnemy, const std::string& bulletTexture) {
+	if (isPlayer) {
+		gun.fireRate = 65;
+		if (!_player->getComponent<CInput>().lshift) {
+			spawnBullet(pos + sf::Vector2f(-20.f, 0.f), isBossEnemy, "WhiteKnife");
+			spawnBullet(pos + sf::Vector2f(20.f, 0.f), isBossEnemy, "WhiteKnife");
+			spawnBullet(pos + sf::Vector2f(-40.f, 0.f), isBossEnemy, "WhiteKnife");
+			spawnBullet(pos + sf::Vector2f(40.f, 0.f), isBossEnemy, "WhiteKnife");
+		}
+	}
+	else {
+		gun.fireRate = gun.originalFireRate;
+		spawnBullet(pos + sf::Vector2f(-20.f, 0.f), isBossEnemy, bulletTexture);
+		spawnBullet(pos + sf::Vector2f(20.f, 0.f), isBossEnemy, bulletTexture);
+	}
+}
 
-				case 4:
-				{
-					if (isBossEnemy) {
-						gun.fireRate = 3;
+void Scene_Touhou::fireSpread1(CGun& gun, const sf::Vector2f& pos, bool isPlayer, bool isBossEnemy) {
+	if (isPlayer && _player->getComponent<CInput>().lshift) {
+		gun.fireRate = 60;
+		spawnBullet(pos + sf::Vector2f(0.f, 0.f), isBossEnemy, "WhiteKnife");
+	}
+}
 
-						if (bulletsMoving) {
-							auto& center = _worldView.getCenter();
-							sf::Vector2f viewHalfSize = _game->windowSize() / 2.f;
-							auto left = center.x - (viewHalfSize.x / 2.f);
-							auto right = center.x + (viewHalfSize.x / 3.f);
-							auto top = center.y - viewHalfSize.y;
-							auto bot = center.y + viewHalfSize.y;
+void Scene_Touhou::fireSpread2(CGun& gun, const sf::Vector2f& pos, bool isBossEnemy, const std::string& lineTexture) {
+	if (isBossEnemy) {
+		gun.fireRate = gun.originalFireRate;
+		bulletSpawnTimer = sf::Time::Zero;
+		bulletIndex = 0;
+		for (int i = -520; i <= 845; i += 65) {
+			spawnBullet(pos + sf::Vector2f(i, -500.f), isBossEnemy, lineTexture);
+		}
+	}
+}
 
-							float ySpacing = 100.f;
-							float yOffset = (currentColumn % 2 == 0) ? 0.f : 50.f;
+void Scene_Touhou::fireSpread3(CGun& gun, const sf::Vector2f& pos, bool isBossEnemy, const std::string& bulletTexture) {
+	if (isBossEnemy) {
+		gun.fireRate = gun.originalFireRate;
+		bulletSpawnTimer = sf::Time::Zero;
+		bulletIndex = 0;
+		float circleRadius = 50.f;
+		float bulletsPerCircle = 10;
+		float angleStep = 360.f / bulletsPerCircle;
 
-							for (float y = top + yOffset - 200.f; y <= bot + 200.f; y += ySpacing) {
-								// Left side bullets
-								sf::Vector2f bulletPos = sf::Vector2f(left - 100.f, y);
-								spawnBullet(bulletPos, isBossEnemy, bulletTexture);
+		sf::Vector2f circleOffsets[3] = {
+			sf::Vector2f(0.f, 100.f),
+			sf::Vector2f(-150.f, -100.f),
+			sf::Vector2f(150.f, -100.f)
+		};
 
-								// Right side bullets
-								bulletPos = sf::Vector2f(right + 100.f, y - 50.f);
-								spawnBullet(bulletPos, isBossEnemy, bulletTexture);
-							}
+		for (int i = 0; i < 3; ++i) {
+			sf::Vector2f circleCenter = pos + circleOffsets[i];
+			for (int j = 0; j < bulletsPerCircle; ++j) {
+				float angle = j * angleStep;
+				sf::Vector2f bulletPos = circleCenter + sf::Vector2f(
+					std::cos(degToRad(angle)) * circleRadius,
+					std::sin(degToRad(angle)) * circleRadius
+				);
+				spawnBullet(bulletPos, isBossEnemy, bulletTexture);
+			}
+		}
+	}
+}
 
-							currentColumn++;
-						}
-					}
-				}
-				break;
-				case 5:
-				{
-					isSpread4 = true;
-					if (_entityManager.getEntities("EnemyBullet").size() <= 500) {
-						if (isBossEnemy) {
-							gun.fireRate = 50;
-							// Semi - circle
-							const int numBullets = 20;
+void Scene_Touhou::fireSpread4(CGun& gun, const sf::Vector2f& pos, bool isBossEnemy, const std::string& bulletTexture) {
+	if (isBossEnemy) {
+		gun.fireRate = 3;
 
-							const float angleStep = 360.f / (numBullets - 1);
+		if (bulletsMoving) {
+			auto& center = _worldView.getCenter();
+			sf::Vector2f viewHalfSize = _game->windowSize() / 2.f;
+			auto left = center.x - (viewHalfSize.x / 2.f);
+			auto right = center.x + (viewHalfSize.x / 3.f);
+			auto top = center.y - viewHalfSize.y;
+			auto bot = center.y + viewHalfSize.y;
 
-							const float radius = 250.f;
+			float ySpacing = 100.f;
+			float yOffset = (currentColumn % 2 == 0) ? 0.f : 50.f;
 
-							if (bulletSpawnTimer <= sf::Time::Zero) {
-								float angle = bulletIndex * angleStep;
+			for (float y = top + yOffset - 200.f; y <= bot + 200.f; y += ySpacing) {
+				spawnBullet(sf::Vector2f(left - 100.f, y), isBossEnemy, bulletTexture);
+				spawnBullet(sf::Vector2f(right + 100.f, y - 50.f), isBossEnemy, bulletTexture);
+			}
 
-								sf::Vector2f bulletPos = pos + sf::Vector2f(std::cos(degToRad(angle)) * radius,
-									std::sin(degToRad(angle)) * radius);
-								bulletPos.y -= 500.f;
+			currentColumn++;
+		}
+	}
+}
 
-								spawnBullet(bulletPos, isBossEnemy, bulletTexture);
+void Scene_Touhou::fireSpread5(CGun& gun, const sf::Vector2f& pos, bool isBossEnemy, const std::string& bulletTexture) {
+	if (_entityManager.getEntities("EnemyBullet").size() <= 500) {
+		if (isBossEnemy) {
+			gun.fireRate = 50;
+			const int numBullets = 20;
+			const float angleStep = 360.f / (numBullets - 1);
+			const float radius = 250.f;
 
-								bulletPos.x += 500.f;
-
-								spawnBullet(bulletPos, isBossEnemy, bulletTexture);
-
-								bulletPos.x -= 1000.f;
-
-								spawnBullet(bulletPos, isBossEnemy, bulletTexture);
-								bulletSpawnTimer = sf::seconds(0.1f);
-
-								//sf::Vector2f bulletPos2 = pos + sf::Vector2f(std::cos(degToRad(angle)) * radius,
-									//std::sin(degToRad(-angle)) * radius);
-								//bulletPos2.y -= 500.f;
-
-								//spawnBullet(bulletPos2, isBossEnemy, bulletTexture);
-
-								bulletIndex++;
-								if (bulletIndex >= numBullets) {
-									bulletIndex = 0;
-									gun.isFiring = false;
-								}
-							}
-						}
-					}
-					else {
-						isSpread4 = false;
-						gun.isFiring = false;
-					}
-					break;
-				}
-
-				default:
-					std::cerr << "Bad spread level firing gun\n";
-					break;
+			if (bulletSpawnTimer <= sf::Time::Zero) {
+				float angle = bulletIndex * angleStep;
+				spawnBullet(pos + sf::Vector2f(std::cos(degToRad(angle)) * radius, std::sin(degToRad(angle)) * radius), isBossEnemy, bulletTexture);
+				bulletIndex++;
+				if (bulletIndex >= numBullets) {
+					bulletIndex = 0;
+					gun.isFiring = false;
 				}
 			}
 		}
+	}
+	else {
+		gun.isFiring = false;
 	}
 }
 
@@ -1364,17 +1300,10 @@ void Scene_Touhou::sSpawnEnemies() {
 }
 
 void Scene_Touhou::spawnBoss(SpawnPoint sp) {
-	auto& center = _worldView.getCenter();
-	sf::Vector2f viewHalfSize = _game->windowSize() / 2.f;
+	auto bounds = getViewBounds();
+	auto centerX = bounds.left + (bounds.right - bounds.left) / 2.f;
 
-	auto top = center.y - viewHalfSize.y;
-	auto left = center.x - (viewHalfSize.x / 2.f);
-	auto right = center.x + (viewHalfSize.x / 3.f);
-	auto bot = center.y + viewHalfSize.y;
-
-	auto centerX = left + (right - left) / 2.f;
-
-	sf::Vector2f pos{ centerX, top };
+	sf::Vector2f pos{ centerX, bounds.top };
 	auto bossEnemy = _entityManager.addEntity("bossEnemy");
 	auto& tfm = bossEnemy->addComponent<CTransform>(pos, sf::Vector2f{ 0.f, _config.enemySpeed });
 	auto& type = sp.type;
@@ -1428,9 +1357,6 @@ void Scene_Touhou::spawnEnemyPlanes(SpawnPoint sp) {
 void Scene_Touhou::sAutoPilot(sf::Time dt) {
 	for (auto e : _entityManager.getEntities("spellCard")) {
 		if (e->hasComponent<CAutoPilot>()) {
-			auto& tfm = e->getComponent<CTransform>();
-			auto& playerPos = _player->getComponent<CTransform>().pos;
-			auto& initialOffset = e->getComponent<CSpawnPosition>().initialPos;
 			auto& anim = e->getComponent<CAnimation>().animation;
 			auto& sprite = anim.getSprite();
 			auto& bb = e->getComponent<CBoundingBox>();
@@ -1458,36 +1384,10 @@ void Scene_Touhou::sAutoPilot(sf::Time dt) {
 			}
 		}
 	}
-
-	for (auto e : _entityManager.getEntities("enemy")) {
-		if (e->hasComponent<CAutoPilot>()) {
-			auto& ai = e->getComponent<CAutoPilot>();
-			ai.countdown -= dt;
-			if (ai.countdown < sf::Time::Zero) {
-				ai.currentLeg = (ai.currentLeg + 1) % autopilot_directions.size();
-				ai.countdown = autopilot_directions[ai.currentLeg].dt;
-				auto& tfm = e->getComponent<CTransform>();
-				if (e->getTag() == "bossEnemy") {
-					auto& tfmBoss = e->getComponent<CTransform>();
-					// Only move randomly if below y = 1200.f
-					if (tfmBoss.pos.y < 1200.f) {
-						// Generate a random angle between -30 to 30 degrees
-						float randomAngle = getRandomFloat(-30.f, 30.f);
-
-						// Set velocity based on the new random movement
-						tfmBoss.vel = length(tfmBoss.vel) * uVecBearing(90 + autopilot_directions[ai.currentLeg].bearing + randomAngle);
-					}
-				}
-				else {
-					tfm.vel = length(tfm.vel) * uVecBearing(90 + autopilot_directions[ai.currentLeg].bearing);
-				}
-			}
-		}
-	}
 }
 
 sf::FloatRect Scene_Touhou::getBattlefieldBounds() const {
-	auto center = _worldView.getCenter();
+	auto& center = _worldView.getCenter();
 	auto size = static_cast<sf::Vector2f>(_game->window().getSize());
 	auto leftTop = center - size / 2.f;
 
@@ -1679,16 +1579,39 @@ void Scene_Touhou::checkIfDead(sPtrEntt e) {
 }
 
 void Scene_Touhou::resetGameState() {
+	// Destroy all entities
 	for (auto const& e : _entityManager.getEntities()) {
 		e->destroy();
 	}
+
 	_entityManager.update();
+
+	// Reset flags and variables
+	bossHasPassed1200 = false;
 	firstTimePassing1200 = true;
 	amountOfBullets = false;
 	shooting = false;
 	isSpread4 = false;
 	lastCheckedHP = 50000;
 	_isPaused = false;
+	_score = 0;
+
+	for (auto const& e : _entityManager.getEntities("bossEnemy")) {
+		if (e->hasComponent<CState>()) {
+			e->getComponent<CState>().state = "BossInit";
+		}
+	}
+}
+
+void Scene_Touhou::startGame() {
+	// Player setup
+	auto& gun = _player->addComponent<CGun>();
+	auto& spellCard = _player->addComponent<CSpellCard>();
+	spellCard.spellCardCount = 3;
+	gun.countdown = sf::Time::Zero;
+	gun.spreadLevel = 0;
+	gun.isFiring = false;
+	gun.fireRate = 65;
 }
 
 void Scene_Touhou::restartGame(const std::string& levelPath) {
@@ -1727,29 +1650,6 @@ void Scene_Touhou::sAnimation(sf::Time dt) {
 			if (anim.animation.hasEnded()) { // for explosion
 				e->destroy();
 			}
-		}
-	}
-
-	if (m_isExpandingCircleActive) {
-		float radius = m_expandingCircle.getRadius();
-		radius += m_expandingCircleSpeed * dt.asSeconds();
-		m_expandingCircle.setRadius(radius);
-		m_expandingCircle.setOrigin(radius, radius);
-
-		float outlineThickness = m_expandingCircle.getOutlineThickness();
-
-		// Check for collisions with bullets
-		for (auto const& bullet : _entityManager.getEntities("EnemyBullet")) {
-			auto bulletPos = bullet->getComponent<CTransform>().pos;
-			float distance = dist(m_expandingCircle.getPosition(), bulletPos);
-			if (distance >= radius - outlineThickness && distance <= radius + outlineThickness) {
-				bullet->destroy();
-			}
-		}
-
-		// Stop the animation if the circle is too large
-		if (radius > _worldView.getSize().x) {
-			m_isExpandingCircleActive = false;
 		}
 	}
 }
