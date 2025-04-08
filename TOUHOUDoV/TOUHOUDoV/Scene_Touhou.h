@@ -12,6 +12,11 @@ struct SpawnPoint {
 	}
 };
 
+struct TemporaryText {
+	sf::Text text;
+	sf::Time lifetime;
+};
+
 struct LevelConfig {
 	float       scrollSpeed{ 100.f };
 	float       playerSpeed{ 200.f };
@@ -43,14 +48,21 @@ class Scene_Touhou : public Scene
 	bool								isBossMovingToTarget = false;
 	sf::CircleShape						m_expandingCircle;
 	bool								m_isExpandingCircleActive{ false };
-	float								m_expandingCircleSpeed{ 200.f };
+	float								m_expandingCircleSpeed{ 300.f };
+	int									_score{ 0 };
+	std::queue<int>						_lastSpreadLevels;
+	int _lastScoreThreshold = 0;
 
 	//UI
-	sf::Text _scoreText;
-	sf::Text _livesText;
-	sf::Text _spellCardsText;
-	sf::Text _parryText;
-	sf::Text _backgroundCooldownText;
+	sf::Text							_scoreText;
+	sf::Text							_livesText;
+	sf::Text							_spellCardsText;
+	sf::Text							_parryText;
+	sf::Text							_backgroundCooldownText;
+	std::vector<TemporaryText>			_temporaryTexts;
+	//const sf::Texture& _whiteHeartTexture;
+
+	void					moveEnemyBullets(sf::Time dt);
 
 	//systems
 	void                    sMovement(sf::Time dt);
@@ -71,7 +83,7 @@ class Scene_Touhou : public Scene
 	void                    checkIfDead(sPtrEntt e);
 	void					resetGameState();
 
-	void                    checkMissileCollision();
+	void                    checkSpellCardCollision();
 	void                    checkBulletCollision();
 	void                    checkPlaneCollision();
 	void                    checkPickupCollision();
@@ -89,7 +101,7 @@ class Scene_Touhou : public Scene
 	void                    adjustPlayerPosition();
 	void                    init(const std::string& path);
 	void                    loadLevel(const std::string& path);
-	void                    spawnMisille();
+	void                    spawnSpellCard();
 	void	                onEnd() override;
 	void                    drawAABB(std::shared_ptr<Entity> e);
 	void                    drawCameraView();

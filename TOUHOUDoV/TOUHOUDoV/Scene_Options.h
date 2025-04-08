@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Scene.h"
-
 class Scene_Options : public Scene
 {
 private:

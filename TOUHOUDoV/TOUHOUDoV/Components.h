@@ -39,10 +39,10 @@ struct CAutoPilot : public Component
 	CAutoPilot() = default;
 };
 
-struct CMissiles : public Component {
-	size_t    missileCount{ 15 };
+struct CSpellCard : public Component {
+	size_t    spellCardCount{ 0 };
 
-	CMissiles() = default;
+	CSpellCard() = default;
 };
 
 struct CGun : public Component {

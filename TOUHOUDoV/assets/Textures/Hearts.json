@@ -1,0 +1,36 @@
+{"frames": [
+
+    {
+        "filename": "WhiteHeart.png",
+        "frame": {"x":0,"y":0,"w":16,"h":16},
+        "rotated": false,
+        "trimmed": false,
+        "spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
+        "sourceSize": {"w":16,"h":16}
+    },
+    {
+        "filename": "GreyHeart.png",
+        "frame": {"x":17,"y":0,"w":16,"h":16},
+        "rotated": false,
+        "trimmed": false,
+        "spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
+        "sourceSize": {"w":16,"h":16}
+    },
+    {
+        "filename": "BlackCard.png",
+        "frame": {"x":0,"y":17,"w":16,"h":16},
+        "rotated": false,
+        "trimmed": false,
+        "spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
+        "sourceSize": {"w":16,"h":16}
+    },
+    {
+        "filename": "RedCard.png",
+        "frame": {"x":17,"y":17,"w":16,"h":16},
+        "rotated": false,
+        "trimmed": false,
+        "spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
+        "sourceSize": {"w":16,"h":16}
+    }
+]
+}

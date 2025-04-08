@@ -18,8 +18,14 @@ JSON                ../assets/Textures/WhiteShot.json
 JSON                ../assets/Textures/BlackShot.json
 JSON                ../assets/Textures/LineShot.json
 JSON                ../assets/Textures/LineShotBlack.json
+JSON                ../assets/Textures/BlackSpell.json
+JSON                ../assets/Textures/WhiteSpell.json
+JSON                ../assets/Textures/Hearts.json
 
 # Textures
+Texture Hearts       ../assets/Textures/Hearts.png
+Texture BlackSpell       ../assets/Textures/BlackSpell.png
+Texture WhiteSpell                ../assets/Textures/WhiteSpell.png
 Texture WhiteShot   ../assets/Textures/WhiteShot.png   
 Texture BlackShot   ../assets/Textures/BlackShot.png
 Texture Player		  ../assets/Textures/Player.png
@@ -50,6 +56,7 @@ Sprite background       Black    0 0  1000 2000
 Sprite background       Sky      0 0  1080 1920
 Sprite background       Jungle   0 0  1024 5600
 Sprite finishLine       Finish   0 0  1024 76
+Sprite background       Hearts 0 0 16 16
 
 #
 #  Animation    Name            Texture     Speed   Repeats
@@ -61,3 +68,5 @@ Animation       ShotWhite       WhiteShot   1        yes
 Animation       ShotBlack       BlackShot   1        yes
 Animation       LineShot        LineShot    1        yes
 Animation       LineShotBlack        LineShotBlack    1        yes
+Animation       WhiteSpell      WhiteSpell  1        yes
+Animation       BlackSpell      BlackSpell  1        yes

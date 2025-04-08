@@ -3,6 +3,8 @@
 #include "Scene_Menu.h"
 #include "Scene_Touhou.h"
 #include "Command.h"
+#include <SFML/Window/VideoMode.hpp>
+#include <SFML/Window/WindowStyle.hpp>
 #include <fstream>
 #include <memory>
 #include <cstdlib>

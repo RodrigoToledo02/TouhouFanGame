@@ -24,12 +24,13 @@ void Scene_Menu::init()
 	registerAction(sf::Keyboard::Up, "UP");
 	registerAction(sf::Keyboard::S, "DOWN");
 	registerAction(sf::Keyboard::Down, "DOWN");
-	registerAction(sf::Keyboard::Z, "PLAY");
+	registerAction(sf::Keyboard::Space, "PLAY");
 	registerAction(sf::Keyboard::Escape, "QUIT");
+	registerAction(sf::Keyboard::F11, "TOGGLE_VIEW_MODE");
 
 	m_title = "TOUHOU: Darkness of the Void";
 	m_menuStrings.emplace_back("Start");
-	//m_menuStrings.emplace_back("Options");
+	m_menuStrings.emplace_back("Options");
 	m_menuStrings.emplace_back("Quit");
 
 	m_levelPaths.emplace_back("../level1.txt");
@@ -138,12 +139,20 @@ void Scene_Menu::sDoAction(const Command& action)
 			}
 			else if (m_menuIndex == 1) // Quit option
 			{
+				//_game->changeScene("OPTIONS", std::make_shared<Scene_Options>(_game, m_levelPaths[m_menuIndex]));
+			}
+			else if (m_menuIndex == 2) // Quit option
+			{
 				onEnd();
 			}
 		}
 		else if (action.name() == "QUIT")
 		{
 			onEnd();
+		}
+		else if (action.name() == "TOGGLE_VIEW_MODE")
+		{
+			_game->toggleViewMode();
 		}
 	}
 }
