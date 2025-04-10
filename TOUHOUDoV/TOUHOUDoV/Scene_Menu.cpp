@@ -3,6 +3,7 @@
 #include "MusicPlayer.h"
 #include <memory>
 #include "Scene_Options.h"
+#include "Scene_Scores.h"
 
 void Scene_Menu::onEnd()
 {
@@ -31,6 +32,7 @@ void Scene_Menu::init()
 	m_title = "TOUHOU: Darkness of the Void";
 	m_menuStrings.emplace_back("Start");
 	m_menuStrings.emplace_back("Options");
+	m_menuStrings.emplace_back("Scores");
 	m_menuStrings.emplace_back("Quit");
 
 	m_levelPaths.emplace_back("../level1.txt");
@@ -53,6 +55,18 @@ void Scene_Menu::updateView(const sf::Vector2u& size) {
 void Scene_Menu::update(sf::Time dt)
 {
 	_entityManager.update();
+}
+
+void Scene_Menu::trim(std::string& str)
+{
+	size_t first = str.find_first_not_of(" \t\n\r\f\v");
+	if (first == std::string::npos) {
+		str.clear();
+	}
+	else {
+		size_t last = str.find_last_not_of(" \t\n\r\f\v");
+		str = str.substr(first, last - first + 1);
+	}
 }
 
 void Scene_Menu::sRender()
@@ -139,9 +153,12 @@ void Scene_Menu::sDoAction(const Command& action)
 			}
 			else if (m_menuIndex == 1) // Quit option
 			{
-				//_game->changeScene("OPTIONS", std::make_shared<Scene_Options>(_game, m_levelPaths[m_menuIndex]));
+				_game->changeScene("OPTIONS", std::make_shared<Scene_Options>(_game));
 			}
-			else if (m_menuIndex == 2) // Quit option
+			else if (m_menuIndex == 2) {  // Scores option
+				_game->changeScene("SCORES", std::make_shared<Scene_Scores>(_game));
+			}
+			else if (m_menuIndex == 3) // Quit option
 			{
 				onEnd();
 			}

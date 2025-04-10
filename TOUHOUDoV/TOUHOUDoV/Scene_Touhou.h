@@ -47,9 +47,13 @@ class Scene_Touhou : public Scene
 	bool								backgroundToggle{ true };
 	sf::Time							_backgroundSwitchCooldown{ sf::Time::Zero };
 	bool								_isPaused{ false };
+	bool								_endGame{ false };
 	int									_pauseMenuIndex{ 0 };
 	sf::Text							_pauseMenuText;
 	std::vector<std::string>			_pauseMenuOptions{ "Continue", "Quit" };
+	int									_endScreenIndex{ 0 };
+	sf::Text							_endScreenText;
+	std::vector<std::string>			_endScreenOptions{ "Continue", "Finish" };
 	bool								bulletsMoving{ true };
 	sf::Time							bulletMovementTimer{ sf::seconds(0) };
 	sf::Vector2f						bossTargetPosition;
@@ -119,6 +123,7 @@ class Scene_Touhou : public Scene
 	void fireSpread5(CGun& gun, const sf::Vector2f& pos, bool isBossEnemy, const std::string& bulletTexture);
 
 	void                    spawnBullet(sf::Vector2f pos, bool isEnemy, const std::string& spriteName);
+	void trim(std::string& str);
 	void	                registerActions();
 	void                    spawnPlayer(sf::Vector2f pos);
 	void                    playerMovement();
@@ -162,6 +167,7 @@ public:
 	void					updateView(const sf::Vector2u& size);
 
 	void					drawPauseOverlay();
+	void					drawEndOverlay();
 	void		            sDoAction(const Command& command) override;
 
 	void		            sRender() override;

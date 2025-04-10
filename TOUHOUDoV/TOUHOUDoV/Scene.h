@@ -25,7 +25,7 @@ protected:
 	void			setPaused(bool paused);
 
 public:
-	Scene(GameEngine* gameEngine);
+	explicit Scene(GameEngine* gameEngine);
 	virtual ~Scene();
 
 	virtual void		update(sf::Time dt) = 0;

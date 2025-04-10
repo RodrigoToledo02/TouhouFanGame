@@ -11,6 +11,9 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <sstream>
+#include <algorithm>
+#include <unordered_map>
 
 bool firstTimePassing1200 = true;
 bool amountOfBullets = false;
@@ -99,6 +102,7 @@ void Scene_Touhou::resetGameState() {
 	_entityManager.update();
 
 	// Reset flags and variables
+	_endGame = false;
 	bossHasPassed1200 = false;
 	firstTimePassing1200 = true;
 	amountOfBullets = false;
@@ -238,13 +242,13 @@ void Scene_Touhou::fireBullet() {
 
 #pragma region Updates
 void Scene_Touhou::update(sf::Time dt) {
-	if (!_isPaused) {
+	if (!_isPaused || !_endGame) {
 		sUpdate(dt);
 	}
 }
 
 void Scene_Touhou::sUpdate(sf::Time dt) {
-	if (_isPaused) {
+	if (_isPaused || _endGame) {
 		return; // Skip updates when the game is paused
 	}
 
@@ -297,6 +301,18 @@ void Scene_Touhou::sUpdate(sf::Time dt) {
 
 #pragma region PlayerInputs
 
+void Scene_Touhou::trim(std::string& str)
+{
+	size_t first = str.find_first_not_of(" \t\n\r\f\v");
+	if (first == std::string::npos) {
+		str.clear();
+	}
+	else {
+		size_t last = str.find_last_not_of(" \t\n\r\f\v");
+		str = str.substr(first, last - first + 1);
+	}
+}
+
 void Scene_Touhou::registerActions() {
 	registerAction(sf::Keyboard::I, "SKIP");
 	registerAction(sf::Keyboard::O, "ZOOMIN");
@@ -310,19 +326,74 @@ void Scene_Touhou::registerActions() {
 	registerAction(sf::Keyboard::T, "TOGGLE_TEXTURE");
 	registerAction(sf::Keyboard::V, "TOGGLE_CAMOUTLINE");
 
-	registerAction(sf::Keyboard::X, "LAUNCH");
-	registerAction(sf::Keyboard::LShift, "GRAZE");
-	registerAction(sf::Keyboard::C, "SWITCH");
-
 	registerAction(sf::Keyboard::A, "LEFT");
-	registerAction(sf::Keyboard::Left, "LEFT");
 	registerAction(sf::Keyboard::D, "RIGHT");
-	registerAction(sf::Keyboard::Right, "RIGHT");
 	registerAction(sf::Keyboard::W, "UP");
-	registerAction(sf::Keyboard::Up, "UP");
 	registerAction(sf::Keyboard::S, "DOWN");
-	registerAction(sf::Keyboard::Down, "DOWN");
 	registerAction(sf::Keyboard::Space, "SELECT");
+
+	std::unordered_map<std::string, sf::Keyboard::Key> keyMap;
+
+	// Reload key.txt
+	std::ifstream keyFile("../key.txt");
+
+	if (!keyFile) {
+		std::cerr << "Failed to open key.txt" << std::endl;
+		return;
+	}
+
+	std::string line;
+	while (std::getline(keyFile, line)) {
+		std::istringstream iss(line);
+		std::string action, keyStr;
+
+		if (std::getline(iss, action, ':') && std::getline(iss, keyStr)) {
+			// Trim spaces from action and keyStr
+			trim(action);
+			trim(keyStr);
+
+			std::cout << "Action: '" << action << "' Key: '" << keyStr << "'" << std::endl; // Debugging output
+
+			// Map the action to a key only if the key is valid in sf::Keyboard
+			if (keyStr == "Left Shift") {
+				keyMap[action] = sf::Keyboard::LShift;
+			}
+			else if (keyStr == "X") {
+				keyMap[action] = sf::Keyboard::X;
+			}
+			else if (keyStr == "C") {
+				keyMap[action] = sf::Keyboard::C;
+			}
+			else if (keyStr == "Up Arrow") {
+				keyMap[action] = sf::Keyboard::Up;
+			}
+			else if (keyStr == "Left Arrow") {
+				keyMap[action] = sf::Keyboard::Left;
+			}
+			else if (keyStr == "Space") {
+				keyMap[action] = sf::Keyboard::Space;
+			}
+			else if (keyStr == "Down Arrow") {
+				keyMap[action] = sf::Keyboard::Down;
+			}
+			else if (keyStr == "Right Arrow") {
+				keyMap[action] = sf::Keyboard::Right;
+			}
+			else if (keyStr.length() == 1 && std::isalpha(keyStr[0])) {
+				keyMap[action] = static_cast<sf::Keyboard::Key>(sf::Keyboard::A + (keyStr[0] - 'A'));
+			}
+			else {
+				std::cerr << "Unrecognized key: '" << keyStr << "'" << std::endl;
+			}
+		}
+	}
+
+	keyFile.close();
+
+	// After reading the key map, register actions dynamically based on keyMap
+	for (const auto& [action, key] : keyMap) {
+		registerAction(key, action);
+	}
 }
 
 void Scene_Touhou::sDoAction(const Command& command) {
@@ -343,6 +414,51 @@ void Scene_Touhou::sDoAction(const Command& command) {
 					_isPaused = false;
 				}
 				else if (_pauseMenuIndex == 1) { // Quit
+					onEnd();
+				}
+			}
+		}
+		else if (_endGame) {
+			if (command.name() == "UP") {
+				_endScreenIndex = (_endScreenIndex + _endScreenOptions.size() - 1) % _endScreenOptions.size();
+			}
+			else if (command.name() == "DOWN") {
+				_endScreenIndex = (_endScreenIndex + 1) % _endScreenOptions.size();
+			}
+			else if (command.name() == "SELECT") {
+				if (_endScreenIndex == 0) { // Continue
+					restartGame(_levelPath);
+				}
+				else if (_endScreenIndex == 1) { // Quit
+					std::ifstream inFile("../score.txt");
+					int currentScore = 0;
+
+					// Read the current score from the file (if it exists)
+					if (inFile.is_open()) {
+						std::string line;
+						if (std::getline(inFile, line)) {
+							size_t scorePos = line.find("Highest Score: ");
+							if (scorePos != std::string::npos) {
+								currentScore = std::stoi(line.substr(scorePos + 15));  // Extract the score value
+							}
+						}
+						inFile.close();
+					}
+					else {
+						std::cerr << "Failed to open score.txt for reading!" << std::endl;
+					}
+
+					if (_score > currentScore) {
+						std::ofstream outFile("../score.txt");
+						if (outFile.is_open()) {
+							outFile << "Highest Score: " << _score << std::endl;
+							outFile.close();
+						}
+						else {
+							std::cerr << "Failed to open score.txt for writing!" << std::endl;
+						}
+					}
+
 					onEnd();
 				}
 			}
@@ -493,6 +609,10 @@ void Scene_Touhou::sRender() {
 		drawPauseOverlay();
 	}
 
+	if (_endGame) {
+		drawEndOverlay();
+	}
+
 	// Render temporary UI texts
 	for (const auto& tempText : _temporaryTexts) {
 		_game->window().draw(tempText.text);
@@ -605,7 +725,7 @@ void Scene_Touhou::drawPickups() {
 void Scene_Touhou::drawBullets() {
 	auto bounds = getViewBounds();
 	auto drawBullet = [&](const std::string& tag) {
-		for (auto& e : _entityManager.getEntities(tag)) {
+		for (auto e : _entityManager.getEntities(tag)) {
 			auto pos = e->getComponent<CTransform>().pos;
 			if (pos.x >= bounds.left && pos.x <= (bounds.left + (bounds.right - bounds.left))) {
 				drawEntt(e);
@@ -684,6 +804,48 @@ void Scene_Touhou::drawPauseOverlay() {
 		_pauseMenuText.setPosition(center.x, center.y + i * 40);
 
 		_game->window().draw(_pauseMenuText);
+	}
+}
+
+void Scene_Touhou::drawEndOverlay() {
+	auto bounds = getViewBounds();
+	auto& center = _worldView.getCenter();
+
+	_game->window().setView(_worldView);
+
+	// Dimmed background
+	sf::RectangleShape overlay(sf::Vector2f(bounds.right - bounds.left, bounds.bot - bounds.top));
+	overlay.setFillColor(sf::Color(0, 0, 0, 180));
+	overlay.setPosition(bounds.left, bounds.top);
+	_game->window().draw(overlay);
+
+	// Score display
+	_endScreenText.setFont(Assets::getInstance().getFont("Venice"));
+	_endScreenText.setCharacterSize(36);
+	_endScreenText.setFillColor(sf::Color::White);
+
+	std::stringstream ss;
+	ss << "Score: " << _score;
+	_endScreenText.setString(ss.str());
+
+	sf::FloatRect scoreBounds = _endScreenText.getLocalBounds();
+	_endScreenText.setOrigin(scoreBounds.width / 2, scoreBounds.height / 2);
+	_endScreenText.setPosition(center.x, center.y - 40);
+	_game->window().draw(_endScreenText);
+
+	// Menu option display
+	static const sf::Color selectedColor(150, 150, 150);
+	static const sf::Color normalColor(255, 255, 255);
+
+	for (size_t i = 0; i < _endScreenOptions.size(); ++i) {
+		_endScreenText.setString(_endScreenOptions[i]);
+		_endScreenText.setFillColor((i == _endScreenIndex) ? selectedColor : normalColor);
+
+		sf::FloatRect optionBounds = _endScreenText.getLocalBounds();
+		_endScreenText.setOrigin(optionBounds.width / 2, optionBounds.height / 2);
+		_endScreenText.setPosition(center.x, center.y + (i * 40) + 20);
+
+		_game->window().draw(_endScreenText);
 	}
 }
 
@@ -1018,7 +1180,7 @@ void Scene_Touhou::sGunUpdate(sf::Time dt) {
 	std::string bulletTexture = backgroundToggle ? "ShotWhite" : "ShotBlack";
 	std::string lineTexture = backgroundToggle ? "LineShot" : "LineShotBlack";
 	std::string pkTexture = backgroundToggle ? "WhiteKnife" : "BlackKnife";
-	std::string pcTexture = backgroundToggle ? "WhiteCard" : "BlackCard";
+	std::string pcTexture = backgroundToggle ? "WhiteCard" : "GreyCard";
 
 	for (auto e : _entityManager.getEntities()) {
 		auto bullet = e->getTag() == "EnemyBullet";
@@ -1125,7 +1287,7 @@ void Scene_Touhou::fireSpread0(CGun& gun, const sf::Vector2f& pos, bool isPlayer
 
 				// Create bullet manually (like spawnBullet, but we want custom velocity)
 				auto bullet = _entityManager.addEntity("PlayerBullet");
-				auto animation = Assets::getInstance().getAnimation(pcTexture);
+				auto& animation = Assets::getInstance().getAnimation(pcTexture);
 				auto& animComp = bullet->addComponent<CAnimation>(animation).animation;
 				auto bb = animComp.getBB();
 
@@ -1141,7 +1303,7 @@ void Scene_Touhou::fireSpread0(CGun& gun, const sf::Vector2f& pos, bool isPlayer
 				sf::Vector2f velocity(0.f, -std::abs(speed));  // Straight up
 
 				auto bullet = _entityManager.addEntity("PlayerBullet");
-				auto animation = Assets::getInstance().getAnimation(pkTexture);
+				auto& animation = Assets::getInstance().getAnimation(pkTexture);
 				auto& animComp = bullet->addComponent<CAnimation>(animation).animation;
 				auto bb = animComp.getBB();
 
@@ -1172,6 +1334,7 @@ void Scene_Touhou::fireSpread1(CGun& gun, const sf::Vector2f& pos, bool isPlayer
 		const float baseAngle = -90.f;
 		const float speed = -_config.bulletSpeed;
 		gun.fireRate = 60;
+		spawnBullet(pos + sf::Vector2f(0.f, 0.f), isBossEnemy, pkTexture);
 
 		for (int i = 0; i < numBullets; ++i) {
 			float angleDeg = baseAngle - (spreadAngle / 2.f) + (i * (spreadAngle / (numBullets - 1)));
@@ -1181,7 +1344,7 @@ void Scene_Touhou::fireSpread1(CGun& gun, const sf::Vector2f& pos, bool isPlayer
 			velocity *= std::abs(speed);
 
 			auto bullet = _entityManager.addEntity("PlayerBullet");
-			auto animation = Assets::getInstance().getAnimation(pkTexture);
+			auto& animation = Assets::getInstance().getAnimation(pkTexture);
 			auto& animComp = bullet->addComponent<CAnimation>(animation).animation;
 			auto bb = animComp.getBB();
 
@@ -1196,7 +1359,7 @@ void Scene_Touhou::fireSpread1(CGun& gun, const sf::Vector2f& pos, bool isPlayer
 			sf::Vector2f velocity(0.f, -std::abs(speed));  // Straight up
 
 			auto bullet = _entityManager.addEntity("PlayerBullet");
-			auto animation = Assets::getInstance().getAnimation(pcTexture);
+			auto& animation = Assets::getInstance().getAnimation(pcTexture);
 			auto& animComp = bullet->addComponent<CAnimation>(animation).animation;
 			auto bb = animComp.getBB();
 
@@ -1328,7 +1491,7 @@ void Scene_Touhou::spawnPlayer(sf::Vector2f pos) {
 		.getAnimation("Idle")).animation.getBB();
 	auto& sprite = _player->getComponent<CAnimation>().animation.getSprite();
 	_player->addComponent<CBoundingBox>(bb);
-	bb = _player->getComponent<CBoundingBox>().halfSize;
+	bb = _player->getComponent<CBoundingBox>().halfSize / 1.5f;
 	_player->addComponent<CBoundingBox>(bb);
 
 	sprite.setScale(1.5f, 1.5f);
@@ -1475,13 +1638,13 @@ void Scene_Touhou::checkIfDead(sPtrEntt e) {
 			e->removeComponent<CHealth>();
 			e->removeComponent<CBoundingBox>();
 			if (e->getTag() == "player") {
-				restartGame(_levelPath);
+				e->destroy();
+				_endGame = true;
 			}
 			if (e->getTag() == "bossEnemy") {
 				// Boss is killed, transition to main menu and reset game state
-				_game->changeScene("MENU", nullptr, true);
-				resetGameState();
-				MusicPlayer::getInstance().play("menuTheme");
+				e->destroy();
+				_endGame = true;
 			}
 		}
 	}
@@ -1611,9 +1774,10 @@ void Scene_Touhou::checkBulletCollision() {
 			_player->getComponent<CHealth>().hp -= 10;
 			bullet->destroy();
 			if (_player->getComponent<CHealth>().hp <= 0) {
-				_player->destroy();
+				/*_player->destroy();
 				restartGame(_levelPath);
-				return;
+				return;*/
+				checkIfDead(_player);
 			}
 		}
 	}

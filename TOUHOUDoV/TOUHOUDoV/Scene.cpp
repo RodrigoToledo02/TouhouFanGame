@@ -4,9 +4,7 @@ Scene::Scene(GameEngine* gameEngine) : _game(gameEngine)
 {
 }
 
-Scene::~Scene()
-{
-}
+Scene::~Scene() = default;
 
 void Scene::setPaused(bool paused)
 {

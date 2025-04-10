@@ -8,6 +8,8 @@
 #include <iostream>
 #include <cassert>
 #include <fstream>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 Assets::Assets()
 {
@@ -42,15 +44,13 @@ void Assets::addSound(const std::string& soundName, const std::string& path) {
 
 void Assets::addTexture(const std::string& textureName, const std::string& path, bool smooth)
 {
-	_textures[textureName] = sf::Texture();
-	if (!_textures[textureName].loadFromFile(path)) {
-		std::cerr << "Could not load texture file: " << path << std::endl;
+	auto& texture = _textures[textureName];
+	if (!texture.loadFromFile(path)) {
+		std::cerr << "Could not load texture: " << path << std::endl;
 		_textures.erase(textureName);
+		return;
 	}
-	else {
-		_textures.at(textureName).setSmooth(smooth);
-		std::cout << "Loaded texture: " << path << std::endl;
-	}
+	texture.setSmooth(smooth);
 }
 
 const sf::Font& Assets::getFont(const std::string& fontName) const {
@@ -73,11 +73,12 @@ const sf::Texture& Assets::getTexture(const std::string& textureName) const
 void Assets::loadFonts(const std::string& path)
 {
 	std::ifstream confFile(path);
-	if (confFile.fail()) {
-		std::cerr << "Open file " << path << " failed\n";
-		confFile.close();
-		exit(1);
+	if (!fs::exists(path)) {
+		std::cerr << "File does not exist: " << path << '\n';
+		return;
 	}
+	if (!confFile)
+		throw std::runtime_error("Failed to open file: " + path);
 
 	std::string token{ "" };
 	confFile >> token;
@@ -100,12 +101,14 @@ void Assets::loadFonts(const std::string& path)
 void Assets::loadTextures(const std::string& path)
 {
 	// Read Config file
-	std::ifstream confFile(path);
-	if (confFile.fail()) {
-		std::cerr << "Open file: " << path << " failed\n";
-		confFile.close();
-		exit(1);
+	if (!fs::exists(path)) {
+		std::cerr << "File does not exist: " << path << '\n';
+		return;
 	}
+
+	std::ifstream confFile(path);
+	if (!confFile)
+		throw std::runtime_error("Failed to open file: " + path);
 
 	std::string token{ "" };
 	confFile >> token;
@@ -129,11 +132,12 @@ void Assets::loadTextures(const std::string& path)
 void Assets::loadSounds(const std::string& path)
 {
 	std::ifstream confFile(path);
-	if (confFile.fail()) {
-		std::cerr << "Open file " << path << " failed\n";
-		confFile.close();
-		exit(1);
+	if (!fs::exists(path)) {
+		std::cerr << "File does not exist: " << path << '\n';
+		return;
 	}
+	if (!confFile)
+		throw std::runtime_error("Failed to open file: " + path);
 
 	std::string token{ "" };
 	confFile >> token;
@@ -157,12 +161,8 @@ void Assets::loadSounds(const std::string& path)
 void Assets::loadJson(const std::string& path) {
 	// Read Config file
 	std::ifstream confFile(path);
-	if (confFile.fail())
-	{
-		std::cerr << "Open file: " << path << " failed\n";
-		confFile.close();
-		exit(1);
-	}
+	if (!confFile)
+		throw std::runtime_error("Failed to open file: " + path);
 
 	std::string token{ "" };
 	confFile >> token;
@@ -206,12 +206,12 @@ void Assets::loadJson(const std::string& path) {
 void Assets::loadAnimations(const std::string& path) {
 	// Read Config file
 	std::ifstream confFile(path);
-	if (confFile.fail())
-	{
-		std::cerr << "Open file: " << path << " failed\n";
-		confFile.close();
-		exit(1);
+	if (!fs::exists(path)) {
+		std::cerr << "File does not exist: " << path << '\n';
+		return;
 	}
+	if (!confFile)
+		throw std::runtime_error("Failed to open file: " + path);
 
 	std::string token{ "" };
 	confFile >> token;

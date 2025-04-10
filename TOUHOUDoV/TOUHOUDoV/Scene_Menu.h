@@ -15,9 +15,10 @@ private:
 	void onEnd() override;
 public:
 
-	Scene_Menu(GameEngine* gameEngine);
+	explicit Scene_Menu(GameEngine* gameEngine);
 
 	void update(sf::Time dt) override;
+	void trim(std::string& str);
 	void updateView(const sf::Vector2u& size);
 
 	void sRender() override;

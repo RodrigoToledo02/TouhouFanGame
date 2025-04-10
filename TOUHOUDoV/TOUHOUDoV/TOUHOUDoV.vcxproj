@@ -161,6 +161,8 @@
     <ClCompile Include="MusicPlayer.cpp" />
     <ClCompile Include="Physics.cpp" />
     <ClCompile Include="Scene.cpp" />
+    <ClCompile Include="Scene_Options.cpp" />
+    <ClCompile Include="Scene_Scores.cpp" />
     <ClCompile Include="Scene_Touhou.cpp" />
     <ClCompile Include="Scene_Menu.cpp" />
     <ClCompile Include="SoundPlayer.cpp" />
@@ -179,6 +181,7 @@
     <ClInclude Include="Physics.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="Scene_Options.h" />
+    <ClInclude Include="Scene_Scores.h" />
     <ClInclude Include="Scene_Touhou.h" />
     <ClInclude Include="Scene_Menu.h" />
     <ClInclude Include="SoundPlayer.h" />

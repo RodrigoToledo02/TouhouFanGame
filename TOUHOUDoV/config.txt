@@ -76,3 +76,4 @@ Animation       WhiteSpell      WhiteSpell  1        yes
 Animation       BlackSpell      BlackSpell  1        yes
 Animation       WhiteCard      ShotPlayer  1        yes
 Animation       BlackCard      ShotPlayer  1        yes
+Animation       GreyCard      ShotPlayer  1        yes

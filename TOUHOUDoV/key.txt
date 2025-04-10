@@ -1,0 +1,8 @@
+GRAZE: Left Shift
+LAUNCH: X
+SWITCH: C
+UP: Up Arrow
+LEFT: Left Arrow
+SELECT: Space
+DOWN: Down Arrow
+RIGHT: Right Arrow
