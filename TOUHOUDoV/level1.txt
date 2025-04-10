@@ -12,6 +12,7 @@ FireInterval 3
 Bkg Black 0 0
 Bkg1 White 0 0
 HP Hearts 0 0
+GB Gb 0 0
 
 #spawn enemies
 Spawn Boss    200

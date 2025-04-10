@@ -1,0 +1,92 @@
+{"frames": [
+
+    {
+        "filename": "WhiteDash.png",
+        "frame": {"x":0,"y":0,"w":16,"h":16},
+        "rotated": false,
+        "trimmed": false,
+        "spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
+        "sourceSize": {"w":16,"h":16}
+    },
+    {
+        "filename": "GreyDash.png",
+        "frame": {"x":17,"y":0,"w":16,"h":16},
+        "rotated": false,
+        "trimmed": false,
+        "spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
+        "sourceSize": {"w":16,"h":16}
+    },
+    {
+        "filename": "BlackDash.png",
+        "frame": {"x":33,"y":0,"w":16,"h":16},
+        "rotated": false,
+        "trimmed": false,
+        "spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
+        "sourceSize": {"w":16,"h":16}
+    },
+    {
+        "filename": "RedDash.png",
+        "frame": {"x":49,"y":0,"w":16,"h":16},
+        "rotated": false,
+        "trimmed": false,
+        "spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
+        "sourceSize": {"w":16,"h":16}
+    },
+    {
+        "filename": "WhiteSpan.png",
+        "frame": {"x":0,"y":17,"w":16,"h":16},
+        "rotated": false,
+        "trimmed": false,
+        "spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
+        "sourceSize": {"w":16,"h":16}
+    },
+    {
+        "filename": "GreySpan.png",
+        "frame": {"x":17,"y":17,"w":16,"h":16},
+        "rotated": false,
+        "trimmed": false,
+        "spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
+        "sourceSize": {"w":16,"h":16}
+    },
+    {
+        "filename": "BlackSpan.png",
+        "frame": {"x":33,"y":17,"w":16,"h":16},
+        "rotated": false,
+        "trimmed": false,
+        "spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
+        "sourceSize": {"w":16,"h":16}
+    },
+    {
+        "filename": "RedSpan.png",
+        "frame": {"x":49,"y":17,"w":16,"h":16},
+        "rotated": false,
+        "trimmed": false,
+        "spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
+        "sourceSize": {"w":16,"h":16}
+    },
+    {
+        "filename": "WhiteGraze.png",
+        "frame": {"x":0,"y":33,"w":16,"h":16},
+        "rotated": false,
+        "trimmed": false,
+        "spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
+        "sourceSize": {"w":16,"h":16}
+    },
+    {
+        "filename": "GreyGraze.png",
+        "frame": {"x":17,"y":33,"w":16,"h":16},
+        "rotated": false,
+        "trimmed": false,
+        "spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
+        "sourceSize": {"w":16,"h":16}
+    },
+    {
+        "filename": "BlackGraze.png",
+        "frame": {"x":33,"y":33,"w":16,"h":16},
+        "rotated": false,
+        "trimmed": false,
+        "spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
+        "sourceSize": {"w":16,"h":16}
+    }
+]
+}

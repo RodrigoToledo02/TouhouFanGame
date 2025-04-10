@@ -69,30 +69,25 @@ void Scene_Touhou::init(const std::string& levelPath) {
 	MusicPlayer::getInstance().setVolume(15);
 
 	// Initialize UI elements
-	_scoreText.setFont(Assets::getInstance().getFont("Arial"));
+	_scoreText.setFont(Assets::getInstance().getFont("Venice"));
 	_scoreText.setCharacterSize(20);
 	_scoreText.setFillColor(sf::Color::White);
 	_scoreText.setString("Score: 0");
 
-	_livesText.setFont(Assets::getInstance().getFont("Arial"));
+	_livesText.setFont(Assets::getInstance().getFont("Venice"));
 	_livesText.setCharacterSize(20);
 	_livesText.setFillColor(sf::Color::White);
 	_livesText.setString("Lives: ");
 
-	_spellCardsText.setFont(Assets::getInstance().getFont("Arial"));
+	_spellCardsText.setFont(Assets::getInstance().getFont("Venice"));
 	_spellCardsText.setCharacterSize(20);
 	_spellCardsText.setFillColor(sf::Color::White);
 	_spellCardsText.setString("Spell Cards: ");
 
-	_parryText.setFont(Assets::getInstance().getFont("Arial"));
-	_parryText.setCharacterSize(20);
-	_parryText.setFillColor(sf::Color::White);
-	_parryText.setString("Parry: 0");
-
-	_backgroundCooldownText.setFont(Assets::getInstance().getFont("Arial"));
+	_backgroundCooldownText.setFont(Assets::getInstance().getFont("Venice"));
 	_backgroundCooldownText.setCharacterSize(20);
 	_backgroundCooldownText.setFillColor(sf::Color::White);
-	_backgroundCooldownText.setString("Switch Background CD: Ready~");
+	_backgroundCooldownText.setString("Soul Sense: Ready~");
 }
 
 void Scene_Touhou::resetGameState() {
@@ -176,6 +171,15 @@ void Scene_Touhou::loadLevel(const std::string& path) {
 			sf::Vector2f pos;
 			config >> name >> pos.x >> pos.y;
 			auto e = _entityManager.addEntity("HP");
+			auto& sprite = e->addComponent<CSprite>(Assets::getInstance().getTexture(name)).sprite;
+			sprite.setOrigin(0.f, 0.f);
+			sprite.setPosition(pos);
+		}
+		else if (token == "GB") {
+			std::string name;
+			sf::Vector2f pos;
+			config >> name >> pos.x >> pos.y;
+			auto e = _entityManager.addEntity("GB");
 			auto& sprite = e->addComponent<CSprite>(Assets::getInstance().getTexture(name)).sprite;
 			sprite.setOrigin(0.f, 0.f);
 			sprite.setPosition(pos);
@@ -267,9 +271,6 @@ void Scene_Touhou::sUpdate(sf::Time dt) {
 		if (_player->hasComponent<CSpellCard>()) {
 			auto& spellCard = _player->getComponent<CSpellCard>();
 			spellCard.spellCardCount += 1;
-
-			// Optionally, update the UI or display a message
-			_spellCardsText.setString("Spell Cards: " + std::to_string(spellCard.spellCardCount));
 		}
 	}
 
@@ -461,183 +462,198 @@ void Scene_Touhou::drawCameraView() {
 void Scene_Touhou::sRender() {
 	auto& center = _worldView.getCenter();
 	_game->window().setView(_worldView);
-	_game->window().clear(sf::Color::White);
-	auto bounds = getViewBounds();
+	_game->window().clear(backgroundToggle ? sf::Color::White : sf::Color::Black);
 
-	// Position UI elements to the right of the background
+	auto bounds = getViewBounds();
 	float uiX = bounds.right + 20.f;
 	float uiY = bounds.top + 20.f;
 
-	sf::FloatRect backgroundBounds;
-	if (backgroundToggle) {
-		for (auto& e : _entityManager.getEntities("bkg")) {
+	drawBackground();
+
+	drawUI(uiX, uiY);
+
+	//drawHealthHearts(uiX, uiY);
+
+	drawSpellCards();
+
+	drawPickups();
+
+	drawBullets();
+
+	drawBossHealthBar();
+	drawBossEntities();
+
+	drawEntities();
+
+	// Draw camera view
+	drawCameraView();
+
+	// Draw pause overlay if paused
+	if (_isPaused) {
+		drawPauseOverlay();
+	}
+
+	// Render temporary UI texts
+	for (const auto& tempText : _temporaryTexts) {
+		_game->window().draw(tempText.text);
+	}
+
+	auto& playerPos = _player->getComponent<CTransform>().pos;
+	auto& input = _player->getComponent<CInput>();
+
+	if (input.lshift) {
+		for (auto& e : _entityManager.getEntities("GB")) {
 			auto& sprite = e->getComponent<CSprite>().sprite;
-			backgroundBounds = sprite.getGlobalBounds();
-			break;
-		}
-	}
-	else {
-		for (auto& e : _entityManager.getEntities("bkg1")) {
-			auto& sprite = e->getComponent<CSprite>().sprite;
-			backgroundBounds = sprite.getGlobalBounds();
-			break;
-		}
-	}
 
-	// draw bkg first
-	if (backgroundToggle) {
-		for (auto& e : _entityManager.getEntities("bkg")) {
-			_game->window().clear(sf::Color::White);
+			sprite.setTextureRect(backgroundToggle ? sf::IntRect(0, 32, 16, 16) : sf::IntRect(32, 32, 16, 16));
 
-			_scoreText.setPosition(uiX, uiY);
-			_scoreText.setFillColor(sf::Color::Black);
-			_game->window().draw(_scoreText);
+			sprite.setOrigin(sprite.getLocalBounds().width / 2, sprite.getLocalBounds().height / 2);
 
-			_livesText.setPosition(uiX, uiY + 30.f);
-			_livesText.setFillColor(sf::Color::Black);
-			_game->window().draw(_livesText);
+			sprite.setPosition(playerPos);
 
-			_spellCardsText.setPosition(uiX, uiY + 60.f);
-			_spellCardsText.setFillColor(sf::Color::Black);
-			_game->window().draw(_spellCardsText);
-
-			_backgroundCooldownText.setPosition(uiX, uiY + 120.f);
-			_backgroundCooldownText.setFillColor(sf::Color::Black);
-			_game->window().draw(_backgroundCooldownText);
-
-			if (e->getComponent<CSprite>().has) {
-				auto& sprite = e->getComponent<CSprite>().sprite;
-				sprite.setPosition(bounds.left, bounds.top);
-				_game->window().draw(sprite);
-			}
-		}
-	}
-	else {
-		for (auto& e : _entityManager.getEntities("bkg1")) {
-			_game->window().clear(sf::Color::Black);
-
-			_scoreText.setPosition(uiX, uiY);
-			_scoreText.setFillColor(sf::Color::White);
-			_game->window().draw(_scoreText);
-
-			_livesText.setPosition(uiX, uiY + 30.f);
-			_livesText.setFillColor(sf::Color::White);
-			_game->window().draw(_livesText);
-
-			_spellCardsText.setPosition(uiX, uiY + 60.f);
-			_spellCardsText.setFillColor(sf::Color::White);
-			_game->window().draw(_spellCardsText);
-
-			_backgroundCooldownText.setPosition(uiX, uiY + 120.f);
-			_backgroundCooldownText.setFillColor(sf::Color::White);
-			_game->window().draw(_backgroundCooldownText);
-
-			if (e->getComponent<CSprite>().has) {
-				auto& sprite = e->getComponent<CSprite>().sprite;
-				sprite.setPosition(bounds.left, bounds.top);
-
-				sprite.setScale((bounds.right - bounds.left) / sprite.getTexture()->getSize().x, (bounds.bot - bounds.top) / sprite.getTexture()->getSize().y);
-				_game->window().draw(sprite);
-			}
-		}
-	}
-
-	for (auto& e : _entityManager.getEntities("HP")) {
-		auto& sprite = e->getComponent<CSprite>().sprite;
-		int playerHP = _player->getComponent<CHealth>().hp;
-		int numHearts = playerHP / 10;
-		for (int i = 0; i < numHearts; ++i) {
-			sprite.setScale(0.7f, 0.7f);
-			if (backgroundToggle)
-				sprite.setTextureRect(sf::IntRect(32, 0, 32, 32));
-			else
-				sprite.setTextureRect(sf::IntRect(0, 0, 32, 32));
-			sprite.setPosition((_livesText.getPosition().x + 64.f) + i * 25.f, _livesText.getPosition().y);
 			_game->window().draw(sprite);
 		}
 	}
+}
 
+void Scene_Touhou::drawBackground() {
+	auto bounds = getViewBounds();
+	for (auto& e : _entityManager.getEntities(backgroundToggle ? "bkg" : "bkg1")) {
+		auto& sprite = e->getComponent<CSprite>().sprite;
+		sprite.setPosition(bounds.left, bounds.top);
+
+		if (!backgroundToggle) {
+			sprite.setScale((bounds.right - bounds.left) / sprite.getTexture()->getSize().x,
+				(bounds.bot - bounds.top) / sprite.getTexture()->getSize().y);
+		}
+
+		_game->window().draw(sprite);
+	}
+}
+
+void Scene_Touhou::drawUI(float uiX, float uiY) {
+	auto textColor = backgroundToggle ? sf::Color::Black : sf::Color::White;
+
+	// Draw the score text
+	_scoreText.setPosition(uiX, uiY);
+	_scoreText.setFillColor(textColor);
+	_game->window().draw(_scoreText);
+
+	// Draw the lives text
+	_livesText.setPosition(uiX, uiY + 30.f);
+	_livesText.setFillColor(textColor);
+	_game->window().draw(_livesText);
+
+	// Draw the spell cards text
+	_spellCardsText.setPosition(uiX, uiY + 60.f);
+	_spellCardsText.setFillColor(textColor);
+	_game->window().draw(_spellCardsText);
+
+	// Draw background cooldown text
+	_backgroundCooldownText.setPosition(uiX, uiY + 120.f);
+	_backgroundCooldownText.setFillColor(textColor);
+	_game->window().draw(_backgroundCooldownText);
+
+	drawHealthHearts(uiX, uiY + 30.f);
+}
+
+void Scene_Touhou::drawHealthHearts(float uiX, float uiY) {
+	int playerHP = _player->getComponent<CHealth>().hp;
+	auto& heartEntities = _entityManager.getEntities("HP");
+	if (playerHP <= 0) {
+		return;
+	}
+
+	if (heartEntities.empty()) {
+		return;
+	}
+
+	int numHearts = playerHP / 10;  // Assuming 10 HP per heart
+
+	for (int i = 0; i < numHearts; ++i) {
+		auto& sprite = _entityManager.getEntities("HP").front()->getComponent<CSprite>().sprite;
+
+		sprite.setScale(0.7f, 0.7f);
+		sprite.setTextureRect(backgroundToggle ? sf::IntRect(32, 0, 32, 32) : sf::IntRect(0, 0, 32, 32));
+
+		sprite.setPosition(uiX + 64.f + i * 25.f, uiY);
+		_game->window().draw(sprite);
+	}
+}
+
+void Scene_Touhou::drawSpellCards() {
 	for (auto& e : _entityManager.getEntities("HP")) {
 		auto& sprite = e->getComponent<CSprite>().sprite;
-		int spellCardCount = _player->getComponent<CSpellCard>().spellCardCount; // Get the player's spell card count
+		int spellCardCount = _player->getComponent<CSpellCard>().spellCardCount;
+
 		for (int i = 0; i < spellCardCount; ++i) {
 			sprite.setScale(0.7f, 0.7f);
-			if (backgroundToggle)
-				sprite.setTextureRect(sf::IntRect(32, 0, 32, 32)); // Use a specific texture rect for spell cards
-			else
-				sprite.setTextureRect(sf::IntRect(0, 0, 32, 32));
-			sprite.setPosition((_spellCardsText.getPosition().x + 128.f) + i * 25.f, _spellCardsText.getPosition().y); // Position the sprites
+			sprite.setTextureRect(backgroundToggle ? sf::IntRect(32, 0, 32, 32) : sf::IntRect(0, 0, 32, 32));
+			sprite.setPosition((_spellCardsText.getPosition().x + 128.f) + i * 25.f, _spellCardsText.getPosition().y);
 			_game->window().draw(sprite);
 		}
 	}
+}
 
-	// draw pickups
+void Scene_Touhou::drawPickups() {
 	for (auto& e : _entityManager.getEntities("Pickup")) {
 		drawEntt(e);
 		drawAABB(e);
 	}
+}
 
-	// draw player bullets
-	for (auto& e : _entityManager.getEntities("PlayerBullet")) {
-		auto pos = e->getComponent<CTransform>().pos;
-		if (pos.x >= backgroundBounds.left && pos.x <= (backgroundBounds.left + backgroundBounds.width)) {
-			drawEntt(e);
-			drawAABB(e);
+void Scene_Touhou::drawBullets() {
+	auto bounds = getViewBounds();
+	auto drawBullet = [&](const std::string& tag) {
+		for (auto& e : _entityManager.getEntities(tag)) {
+			auto pos = e->getComponent<CTransform>().pos;
+			if (pos.x >= bounds.left && pos.x <= (bounds.left + (bounds.right - bounds.left))) {
+				drawEntt(e);
+				drawAABB(e);
+			}
 		}
-	}
+		};
 
-	for (auto& e : _entityManager.getEntities("EnemyBullet")) {
-		auto pos = e->getComponent<CTransform>().pos;
-		if (pos.x >= backgroundBounds.left && pos.x <= (backgroundBounds.left + backgroundBounds.width)) {
-			drawEntt(e);
-			drawAABB(e);
-		}
-	}
+	drawBullet("PlayerBullet");
+	drawBullet("EnemyBullet");
+	drawBullet("spellCard");
+}
 
-	for (auto& e : _entityManager.getEntities("spellCard")) {
-		//auto pos = e->getComponent<CTransform>().pos;
-		//if (pos.x >= backgroundBounds.left && pos.x <= (backgroundBounds.left + backgroundBounds.width)) {
-		drawEntt(e);
-		drawAABB(e);
-		//}
-	}
-
+void Scene_Touhou::drawBossHealthBar() {
+	auto bounds = getViewBounds();
 	for (auto& e : _entityManager.getEntities("bossEnemy")) {
 		if (e->getComponent<CState>().state == "BossActive") {
 			auto& health = e->getComponent<CHealth>();
 			float healthPercentage = static_cast<float>(health.hp) / 50000.f;
-			float healthBarWidth = backgroundBounds.width * 0.9f * healthPercentage;
-			sf::RectangleShape healthBar(sf::Vector2f(100.f, 20.f));
+			float healthBarWidth = (bounds.right - bounds.left) * 0.9f * healthPercentage;
+
+			sf::RectangleShape healthBar(sf::Vector2f(healthBarWidth, 20.f));
 			healthBar.setFillColor(sf::Color::Red);
-			healthBar.setPosition(center.x, bounds.top - 30.f);
+			healthBar.setPosition(bounds.left + ((bounds.right - bounds.left) - healthBarWidth) / 2.f, bounds.top - 30.f);
 			_game->window().draw(healthBar);
-			drawHP(e);
 		}
-		drawEntt(e);
-		drawAABB(e);
-
-		drawAmmo(e);
 	}
+}
 
-	// draw all entities
-	for (auto& e : _entityManager.getEntities()) {
-		if (!e->hasComponent<CAnimation>() || e->getTag() == "bkg" || e->getTag() == "Pickup" || e->getTag() == "PlayerBullet" || e->getTag() == "EnemyBullet" || e->getTag() == "bossEnemy" || e->getTag() == "spellCard")
-			continue;
+void Scene_Touhou::drawBossEntities() {
+	for (auto& e : _entityManager.getEntities("bossEnemy")) {
 		drawEntt(e);
 		drawAABB(e);
 		drawHP(e);
 		drawAmmo(e);
 	}
-	drawCameraView();
+}
 
-	// Render UI elements
-
-	if (_isPaused) {
-		drawPauseOverlay();
-	}
-
-	for (const auto& tempText : _temporaryTexts) {
-		_game->window().draw(tempText.text);
+void Scene_Touhou::drawEntities() {
+	for (auto const& e : _entityManager.getEntities()) {
+		if (e->hasComponent<CAnimation>() && e->getTag() != "bkg" && e->getTag() != "Pickup" &&
+			e->getTag() != "PlayerBullet" && e->getTag() != "EnemyBullet" &&
+			e->getTag() != "bossEnemy" && e->getTag() != "spellCard") {
+			drawEntt(e);
+			drawAABB(e);
+			drawHP(e);
+			drawAmmo(e);
+		}
 	}
 }
 
@@ -649,7 +665,7 @@ void Scene_Touhou::drawPauseOverlay() {
 	_game->window().setView(_worldView); // Set the current view
 
 	sf::RectangleShape overlay(sf::Vector2f(bounds.right - bounds.left, bounds.bot - bounds.top));
-	overlay.setFillColor(sf::Color(0, 0, 0, 150)); // Semi-transparent black
+	overlay.setFillColor(sf::Color(0, 0, 0, 150));
 	overlay.setPosition(bounds.left, bounds.top);
 	_game->window().draw(overlay);
 
@@ -673,7 +689,7 @@ void Scene_Touhou::drawPauseOverlay() {
 
 void Scene_Touhou::drawAABB(std::shared_ptr<Entity> e) {
 	if (_drawAABB) {
-		auto box = e->getComponent<CBoundingBox>();
+		auto& box = e->getComponent<CBoundingBox>();
 		sf::Shape* shape;
 		if (box.isCircular) {
 			shape = new sf::CircleShape(box.radius);
@@ -716,17 +732,6 @@ void Scene_Touhou::drawHP(sPtrEntt e) {
 		auto centerX = left + (right - left) / 2.f;
 		healthBar.setPosition(centerX - (healthBarWidth / 2.f), top + 10.f);
 		_game->window().draw(healthBar);
-	}
-	else if (e->hasComponent<CHealth>()) {
-		int hp = e->getComponent<CHealth>().hp;
-		std::string str = "HP: " + std::to_string(hp);
-		text.setString(str);
-		centerOrigin(text);
-
-		sf::Vector2f offset(0.f, 40.f);
-		offset.y = (e->getTag() == "enemy") ? -40.f : 40.f;
-		text.setPosition(e->getComponent<CTransform>().pos + offset);
-		_game->window().draw(text);
 	}
 }
 
@@ -1120,7 +1125,7 @@ void Scene_Touhou::fireSpread0(CGun& gun, const sf::Vector2f& pos, bool isPlayer
 
 				// Create bullet manually (like spawnBullet, but we want custom velocity)
 				auto bullet = _entityManager.addEntity("PlayerBullet");
-				const auto& animation = Assets::getInstance().getAnimation(pcTexture);
+				auto animation = Assets::getInstance().getAnimation(pcTexture);
 				auto& animComp = bullet->addComponent<CAnimation>(animation).animation;
 				auto bb = animComp.getBB();
 
@@ -1136,7 +1141,7 @@ void Scene_Touhou::fireSpread0(CGun& gun, const sf::Vector2f& pos, bool isPlayer
 				sf::Vector2f velocity(0.f, -std::abs(speed));  // Straight up
 
 				auto bullet = _entityManager.addEntity("PlayerBullet");
-				const auto& animation = Assets::getInstance().getAnimation(pkTexture);
+				auto animation = Assets::getInstance().getAnimation(pkTexture);
 				auto& animComp = bullet->addComponent<CAnimation>(animation).animation;
 				auto bb = animComp.getBB();
 
@@ -1149,8 +1154,7 @@ void Scene_Touhou::fireSpread0(CGun& gun, const sf::Vector2f& pos, bool isPlayer
 			createSideBullet(-20.f);
 			createSideBullet(20.f);
 
-			// Optional: play shot sound once
-			SoundPlayer::getInstance().play("Damage01", _worldView.getCenter(), 50.f);
+			SoundPlayer::getInstance().play("Damage01", _worldView.getCenter(), 100.f);
 		}
 	}
 
@@ -1168,7 +1172,6 @@ void Scene_Touhou::fireSpread1(CGun& gun, const sf::Vector2f& pos, bool isPlayer
 		const float baseAngle = -90.f;
 		const float speed = -_config.bulletSpeed;
 		gun.fireRate = 60;
-		spawnBullet(pos + sf::Vector2f(0.f, 0.f), isBossEnemy, pkTexture);
 
 		for (int i = 0; i < numBullets; ++i) {
 			float angleDeg = baseAngle - (spreadAngle / 2.f) + (i * (spreadAngle / (numBullets - 1)));
@@ -1178,7 +1181,7 @@ void Scene_Touhou::fireSpread1(CGun& gun, const sf::Vector2f& pos, bool isPlayer
 			velocity *= std::abs(speed);
 
 			auto bullet = _entityManager.addEntity("PlayerBullet");
-			const auto& animation = Assets::getInstance().getAnimation(pkTexture);
+			auto animation = Assets::getInstance().getAnimation(pkTexture);
 			auto& animComp = bullet->addComponent<CAnimation>(animation).animation;
 			auto bb = animComp.getBB();
 
@@ -1193,7 +1196,7 @@ void Scene_Touhou::fireSpread1(CGun& gun, const sf::Vector2f& pos, bool isPlayer
 			sf::Vector2f velocity(0.f, -std::abs(speed));  // Straight up
 
 			auto bullet = _entityManager.addEntity("PlayerBullet");
-			const auto& animation = Assets::getInstance().getAnimation(pcTexture);
+			auto animation = Assets::getInstance().getAnimation(pcTexture);
 			auto& animComp = bullet->addComponent<CAnimation>(animation).animation;
 			auto bb = animComp.getBB();
 
@@ -1205,6 +1208,8 @@ void Scene_Touhou::fireSpread1(CGun& gun, const sf::Vector2f& pos, bool isPlayer
 
 		createSideBullet(-20.f);
 		createSideBullet(20.f);
+
+		SoundPlayer::getInstance().play("Damage01", _worldView.getCenter(), 100.f);
 	}
 }
 
@@ -1321,9 +1326,12 @@ void Scene_Touhou::spawnPlayer(sf::Vector2f pos) {
 
 	auto bb = _player->addComponent<CAnimation>(Assets::getInstance()
 		.getAnimation("Idle")).animation.getBB();
+	auto& sprite = _player->getComponent<CAnimation>().animation.getSprite();
 	_player->addComponent<CBoundingBox>(bb);
 	bb = _player->getComponent<CBoundingBox>().halfSize;
 	_player->addComponent<CBoundingBox>(bb);
+
+	sprite.setScale(1.5f, 1.5f);
 
 	_player->addComponent<CState>("straight");
 	_player->addComponent<CInput>();
@@ -1366,7 +1374,7 @@ void Scene_Touhou::spawnBullet(sf::Vector2f pos, bool isEnemy, const std::string
 
 	// Determine speed and play sound
 	const float speed = isEnemy ? baseSpeed : -baseSpeed;
-	SoundPlayer::getInstance().play(isEnemy ? "EnemyGunfire" : "Damage01", center, 50.f);
+	SoundPlayer::getInstance().play(isEnemy ? "EnemyGunfire" : "Damage01", center, 100.f);
 
 	// Create bullet entity
 	auto bullet = _entityManager.addEntity(isEnemy ? "EnemyBullet" : "PlayerBullet");
@@ -1444,7 +1452,7 @@ void Scene_Touhou::spawnBoss(SpawnPoint sp) {
 		sprite.setScale(1.7f, 1.7f);
 
 		auto bb = animation.getBB();
-		bb.x /= 2;
+		bb.x /= 2.5;
 		bb.y /= 1.5;
 
 		bossEnemy->addComponent<CBoundingBox>(bb);

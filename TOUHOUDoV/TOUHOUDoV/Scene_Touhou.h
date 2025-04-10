@@ -134,6 +134,15 @@ class Scene_Touhou : public Scene
 	void                    drawAmmo(sPtrEntt e);
 	void                    drawEntt(sPtrEntt e);
 	void					playerSize(bool smaller);
+	void drawUI(float uiX, float uiY);
+	void drawHealthHearts(float uiX, float uiY);
+	void drawSpellCards();
+	void drawPickups();
+	void drawBullets();
+	void drawBossHealthBar();
+	void drawBossEntities();
+	void drawEntities();
+	void drawBackground();
 
 	ViewBounds getViewBounds() const {
 		sf::Vector2f center = _worldView.getCenter();
@@ -151,6 +160,7 @@ public:
 	Scene_Touhou(GameEngine* gameEngine, const std::string& levelPath);
 	void		            update(sf::Time dt) override;
 	void					updateView(const sf::Vector2u& size);
+
 	void					drawPauseOverlay();
 	void		            sDoAction(const Command& command) override;
 

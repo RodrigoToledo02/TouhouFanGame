@@ -5,6 +5,7 @@ Window  800 950
 Font    Arial      	../assets/fonts/arial.ttf
 Font    main       	../assets/fonts/Sansation.ttf
 Font    Arcade    	../assets/fonts/arcadeclassic.regular.ttf
+Font    Venice    	../assets/fonts/VeniceClassic.ttf
 
 Music TouhouMenu    ../assets/Music/Touhou_Sumizome-YFintrocut_loop.ogg
 Music TouhouTheme   ../assets/Music/Touhou_Luna-dial_YouFulca_loop.ogg
@@ -21,8 +22,10 @@ JSON                ../assets/Textures/LineShotBlack.json
 JSON                ../assets/Textures/BlackSpell.json
 JSON                ../assets/Textures/WhiteSpell.json
 JSON                ../assets/Textures/Hearts.json
+JSON                ../assets/Textures/GB.json
 
 # Textures
+Texture Gb       ../assets/Textures/GB.png
 Texture Hearts       ../assets/Textures/Hearts.png
 Texture BlackSpell       ../assets/Textures/BlackSpell.png
 Texture WhiteSpell                ../assets/Textures/WhiteSpell.png
@@ -57,6 +60,7 @@ Sprite background       Sky      0 0  1080 1920
 Sprite background       Jungle   0 0  1024 5600
 Sprite finishLine       Finish   0 0  1024 76
 Sprite background       Hearts 0 0 16 16
+Sprite background       Gb 0 0 16 16
 
 #
 #  Animation    Name            Texture     Speed   Repeats

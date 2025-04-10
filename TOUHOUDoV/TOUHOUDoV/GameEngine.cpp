@@ -18,13 +18,13 @@ GameEngine::GameEngine(const std::string& path)
 
 void GameEngine::toggleViewMode() {
 	if (_viewMode == ViewMode::Windowed) {
-		setViewMode(ViewMode::Fullscreen);
+		setViewMode(ViewMode::Windowed);
 	}
 	else if (_viewMode == ViewMode::Fullscreen) {
-		setViewMode(ViewMode::WindowedFullscreen);
+		setViewMode(ViewMode::Fullscreen);
 	}
 	else {
-		setViewMode(ViewMode::Windowed);
+		setViewMode(ViewMode::WindowedFullscreen);
 	}
 }
 
@@ -68,7 +68,7 @@ void GameEngine::init(const std::string& path) {
 	unsigned int width;
 	unsigned int height;
 	loadConfigFromFile(path, width, height);
-	setViewMode(ViewMode::WindowedFullscreen);
+	setViewMode(ViewMode::Fullscreen);
 
 	_statisticsText.setFont(Assets::getInstance().getFont("main"));
 	_statisticsText.setPosition(15.0f, 5.0f);

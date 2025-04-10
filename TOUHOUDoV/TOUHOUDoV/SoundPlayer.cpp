@@ -49,6 +49,13 @@ void SoundPlayer::play(String effect, sf::Vector2f position, float volume) {
 	sound.play();
 }
 
+void SoundPlayer::resetVolume() {
+	// Reset the volume to a default value, for example, 100.f
+	for (auto& sound : m_sounds) {
+		sound.setVolume(100.f);  // Reset volume to the default level
+	}
+}
+
 void SoundPlayer::removeStoppedSounds() {
 	m_sounds.remove_if([](const sf::Sound& s) {
 		return s.getStatus() == sf::Sound::Stopped;
