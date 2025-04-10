@@ -70,3 +70,5 @@ Animation       LineShot        LineShot    1        yes
 Animation       LineShotBlack        LineShotBlack    1        yes
 Animation       WhiteSpell      WhiteSpell  1        yes
 Animation       BlackSpell      BlackSpell  1        yes
+Animation       WhiteCard      ShotPlayer  1        yes
+Animation       BlackCard      ShotPlayer  1        yes

@@ -58,13 +58,13 @@ class Scene_Touhou : public Scene
 	bool								m_isExpandingCircleActive{ false };
 	float								m_expandingCircleSpeed{ 300.f };
 	int									_score{ 0 };
-	int						lastSpreadLevel;
-	int _lastScoreThreshold = 0;
-	bool bossHasPassed1200{ false };
-	int bulletIndex = 0;
-	int currentColumn = 0;
-	sf::Time bulletSpawnTimer = sf::Time::Zero;
-	sf::Time columnSpawnTimer = sf::Time::Zero;
+	int									lastSpreadLevel;
+	int									_lastScoreThreshold = 0;
+	bool								bossHasPassed1200{ false };
+	int									bulletIndex = 0;
+	int									currentColumn = 0;
+	sf::Time							bulletSpawnTimer = sf::Time::Zero;
+	sf::Time							columnSpawnTimer = sf::Time::Zero;
 
 	//UI
 	sf::Text							_scoreText;
@@ -81,9 +81,8 @@ class Scene_Touhou : public Scene
 	void                    sCollisions();
 	void                    sUpdate(sf::Time dt);
 	void                    sGunUpdate(sf::Time dt);
-	void updateBossSpreadLevel(CGun& gun, int bossCurrentHP);
+	void					updateBossSpreadLevel(CGun& gun, int bossCurrentHP);
 	void                    sAutoPilot(sf::Time dt);
-	void                    sGuideMissiles(sf::Time dt);
 	void                    sAnimation(sf::Time dt);
 
 	// Movements
@@ -94,8 +93,6 @@ class Scene_Touhou : public Scene
 
 	// helper functions
 	void					despawnAllBullets();
-	void                    dropPickup(sf::Vector2f pos);
-	void                    startAnimation(sPtrEntt e, std::string animation);
 	void                    checkIfDead(sPtrEntt e);
 	void					resetGameState();
 
@@ -103,19 +100,15 @@ class Scene_Touhou : public Scene
 
 	void                    checkSpellCardCollision();
 	void                    checkBulletCollision();
-	void                    checkPlaneCollision();
-	void                    checkPickupCollision();
-	sf::Vector2f            findClosestEnemy(sf::Vector2f mPos);
 	sf::FloatRect           getBattlefieldBounds() const;
 	void                    destroyOutsideBattlefieldBounds();
-	void                    spawnEnemyPlanes(SpawnPoint sp);
 	void					spawnBoss(SpawnPoint sp);
 
-	void handleFiring(CGun& gun, const sf::Vector2f& pos, bool isPlayer, bool isBossEnemy, const std::string& bulletTexture, const std::string& lineTexture);
+	void handleFiring(CGun& gun, const sf::Vector2f& pos, bool isPlayer, bool isBossEnemy, const std::string& bulletTexture, const std::string& lineTexture, const std::string& pkTexture, const std::string& pcTexture);
 
-	void fireSpread0(CGun& gun, const sf::Vector2f& pos, bool isPlayer, bool isBossEnemy, const std::string& bulletTexture);
+	void fireSpread0(CGun& gun, const sf::Vector2f& pos, bool isPlayer, bool isBossEnemy, const std::string& bulletTexture, const std::string& pkTexture, const std::string& pcTexture);
 
-	void fireSpread1(CGun& gun, const sf::Vector2f& pos, bool isPlayer, bool isBossEnemy);
+	void fireSpread1(CGun& gun, const sf::Vector2f& pos, bool isPlayer, bool isBossEnemy, const std::string& pkTexture, const std::string& pcTexture);
 
 	void fireSpread2(CGun& gun, const sf::Vector2f& pos, bool isBossEnemy, const std::string& lineTexture);
 
