@@ -9,10 +9,7 @@ Font    Venice    	../assets/fonts/VeniceClassic.ttf
 
 Music TouhouMenu    ../assets/Music/Touhou_Sumizome-YFintrocut_loop.ogg
 Music TouhouTheme   ../assets/Music/Touhou_Luna-dial_YouFulca_loop.ogg
-Music menuTheme     ../assets/Music/MenuTheme.ogg
-Music missionTheme  ../assets/Music/MissionTheme.ogg
 
-JSON                ../assets/Textures/Entities.json
 JSON				../assets/Textures/Player.json
 JSON	            ../assets/Textures/PlayerBullet.json
 JSON                ../assets/Textures/WhiteShot.json
@@ -23,8 +20,10 @@ JSON                ../assets/Textures/BlackSpell.json
 JSON                ../assets/Textures/WhiteSpell.json
 JSON                ../assets/Textures/Hearts.json
 JSON                ../assets/Textures/GB.json
+JSON				../assets/Textures/SpellCounter.json
 
 # Textures
+Texture SpellCounter       ../assets/Textures/SpellCounter.png
 Texture Gb       ../assets/Textures/GB.png
 Texture Hearts       ../assets/Textures/Hearts.png
 Texture BlackSpell       ../assets/Textures/BlackSpell.png
@@ -32,11 +31,6 @@ Texture WhiteSpell                ../assets/Textures/WhiteSpell.png
 Texture WhiteShot   ../assets/Textures/WhiteShot.png   
 Texture BlackShot   ../assets/Textures/BlackShot.png
 Texture Player		  ../assets/Textures/Player.png
-Texture Entities    ../assets/Textures/Entities.png
-Texture Jungle      ../assets/Textures/Jungle-long.png
-Texture Finish      ../assets/Textures/FinishLine.png
-Texture Explosion   ../assets/Textures/Explosion.png
-Texture Sky         ../assets/Textures/1.png
 Texture Black       ../assets/Textures/BlackBackground.png
 Texture White       ../assets/Textures/WhiteBackground.png
 Texture ShotPlayer  ../assets/Textures/Shot-Player.png
@@ -56,11 +50,9 @@ Sound Damage01      ../assets/Sounds/se_damage01.wav
 # Sprites
 Sprite background       White    0 0  1000 2000
 Sprite background       Black    0 0  1000 2000
-Sprite background       Sky      0 0  1080 1920
-Sprite background       Jungle   0 0  1024 5600
-Sprite finishLine       Finish   0 0  1024 76
 Sprite background       Hearts 0 0 16 16
 Sprite background       Gb 0 0 16 16
+Sprite background       SpellCounter 0 0 16 16
 
 #
 #  Animation    Name            Texture     Speed   Repeats

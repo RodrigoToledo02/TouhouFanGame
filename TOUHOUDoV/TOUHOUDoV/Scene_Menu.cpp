@@ -31,15 +31,15 @@ void Scene_Menu::init()
 
 	m_title = "TOUHOU: Darkness of the Void";
 	m_menuStrings.emplace_back("Start");
-	m_menuStrings.emplace_back("Options");
-	m_menuStrings.emplace_back("Scores");
+	m_menuStrings.emplace_back("Controls");
+	m_menuStrings.emplace_back("High-Score");
 	m_menuStrings.emplace_back("Quit");
 
 	m_levelPaths.emplace_back("../level1.txt");
 	//m_levelPaths.emplace_back("../options.txt");
 	//m_levelPaths.emplace_back(2);
 
-	m_menuText.setFont(Assets::getInstance().getFont("main"));
+	m_menuText.setFont(Assets::getInstance().getFont("Venice"));
 
 	const size_t CHAR_SIZE{ 64 };
 	m_menuText.setCharacterSize(CHAR_SIZE);
@@ -78,7 +78,7 @@ void Scene_Menu::sRender()
 
 	_game->window().clear(sf::Color(0, 0, 0));
 
-	static const sf::Color selectedColor(150, 150, 150);
+	static const sf::Color selectedColor(sf::Color::Yellow);
 	static const sf::Color normalColor(255, 255, 255);
 
 	const unsigned int minFontSize = 32;

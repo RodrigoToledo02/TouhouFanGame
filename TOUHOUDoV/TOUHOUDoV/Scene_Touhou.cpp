@@ -69,28 +69,33 @@ void Scene_Touhou::init(const std::string& levelPath) {
 	spawnPlayer(bottomPos);
 
 	MusicPlayer::getInstance().play("gameTheme");
-	MusicPlayer::getInstance().setVolume(15);
+	MusicPlayer::getInstance().setVolume(10);
 
 	// Initialize UI elements
 	_scoreText.setFont(Assets::getInstance().getFont("Venice"));
-	_scoreText.setCharacterSize(20);
+	_scoreText.setCharacterSize(42);
 	_scoreText.setFillColor(sf::Color::White);
 	_scoreText.setString("Score: 0");
 
 	_livesText.setFont(Assets::getInstance().getFont("Venice"));
-	_livesText.setCharacterSize(20);
+	_livesText.setCharacterSize(38);
 	_livesText.setFillColor(sf::Color::White);
 	_livesText.setString("Lives: ");
 
 	_spellCardsText.setFont(Assets::getInstance().getFont("Venice"));
-	_spellCardsText.setCharacterSize(20);
+	_spellCardsText.setCharacterSize(38);
 	_spellCardsText.setFillColor(sf::Color::White);
 	_spellCardsText.setString("Spell Cards: ");
 
 	_backgroundCooldownText.setFont(Assets::getInstance().getFont("Venice"));
-	_backgroundCooldownText.setCharacterSize(20);
+	_backgroundCooldownText.setCharacterSize(38);
 	_backgroundCooldownText.setFillColor(sf::Color::White);
 	_backgroundCooldownText.setString("Soul Sense: Ready~");
+
+	_cooldownCircle.setRadius(15.f);
+	_cooldownCircle.setOrigin(50.f, 50.f);
+
+	_backgroundSwitchCooldownMax = sf::seconds(60.f);
 }
 
 void Scene_Touhou::resetGameState() {
@@ -188,6 +193,15 @@ void Scene_Touhou::loadLevel(const std::string& path) {
 			sprite.setOrigin(0.f, 0.f);
 			sprite.setPosition(pos);
 		}
+		else if (token == "SP") {
+			std::string name;
+			sf::Vector2f pos;
+			config >> name >> pos.x >> pos.y;
+			auto e = _entityManager.addEntity("SP");
+			auto& sprite = e->addComponent<CSprite>(Assets::getInstance().getTexture(name)).sprite;
+			sprite.setOrigin(0.f, 0.f);
+			sprite.setPosition(pos);
+		}
 		else if (token == "World") {
 			config >> _worldBounds.width >> _worldBounds.height;
 		}
@@ -278,13 +292,38 @@ void Scene_Touhou::sUpdate(sf::Time dt) {
 		}
 	}
 
+	if (_score >= _lastScoreThreshold + 10000) {
+		_lastScoreThreshold += 10000;
+
+		// Add a spell card to the player
+		if (_player->hasComponent<CSpellCard>()) {
+			auto& spellCard = _player->getComponent<CSpellCard>();
+			spellCard.spellCardCount += 1;
+		}
+	}
+
+	// Update the background cool down
 	if (_backgroundSwitchCooldown > sf::Time::Zero) {
 		_backgroundSwitchCooldown -= dt;
+
 		auto cooldownSeconds = static_cast<int>(std::ceil(_backgroundSwitchCooldown.asSeconds()));
-		_backgroundCooldownText.setString("Switch Background CD: " + std::to_string(cooldownSeconds) + "s");
+		_backgroundCooldownText.setString("Soul Sense:    " + std::to_string(cooldownSeconds) + "s");
+
+		float progress = 1.f - (_backgroundSwitchCooldown / _backgroundSwitchCooldownMax);
+		int alphaValue = static_cast<int>(progress * 255.f);
+
+		if (backgroundToggle)
+			_cooldownCircle.setFillColor(sf::Color(0, 0, 0, alphaValue));
+		else
+			_cooldownCircle.setFillColor(sf::Color(255, 255, 255, alphaValue));
 	}
 	else {
-		_backgroundCooldownText.setString("Switch Background CD: READY~");
+		_backgroundCooldownText.setString("Soul Sense:    Ready~");
+
+		if (backgroundToggle)
+			_cooldownCircle.setFillColor(sf::Color(0, 0, 0, 255));
+		else
+			_cooldownCircle.setFillColor(sf::Color(255, 255, 255, 255));
 	}
 
 	for (auto it = _temporaryTexts.begin(); it != _temporaryTexts.end();) {
@@ -588,9 +627,11 @@ void Scene_Touhou::sRender() {
 
 	drawUI(uiX, uiY);
 
+	//drawCooldownCircle(uiX, uiY);
+
 	//drawHealthHearts(uiX, uiY);
 
-	drawSpellCards();
+	//drawSpellCards();
 
 	drawPickups();
 
@@ -660,21 +701,31 @@ void Scene_Touhou::drawUI(float uiX, float uiY) {
 	_game->window().draw(_scoreText);
 
 	// Draw the lives text
-	_livesText.setPosition(uiX, uiY + 30.f);
+	_livesText.setPosition(uiX, uiY + 90.f);
 	_livesText.setFillColor(textColor);
 	_game->window().draw(_livesText);
 
 	// Draw the spell cards text
-	_spellCardsText.setPosition(uiX, uiY + 60.f);
+	_spellCardsText.setPosition(uiX, uiY + 130.f);
 	_spellCardsText.setFillColor(textColor);
 	_game->window().draw(_spellCardsText);
 
 	// Draw background cooldown text
-	_backgroundCooldownText.setPosition(uiX, uiY + 120.f);
+	_backgroundCooldownText.setPosition(uiX, uiY + 170.f);
 	_backgroundCooldownText.setFillColor(textColor);
 	_game->window().draw(_backgroundCooldownText);
 
-	drawHealthHearts(uiX, uiY + 30.f);
+	drawHealthHearts(uiX, uiY + 90.f);
+	drawSpellCards(uiX, uiY + 130.f);
+	drawCooldownCircle(uiX, uiY + 170.f);
+}
+
+void Scene_Touhou::drawCooldownCircle(float uiX, float uiY) {
+	// Draw the cooldown circle (assuming the circle is already initialized)
+	_cooldownCircle.setPosition(uiX + 215.f, uiY + 65.f);
+
+	// Draw the circle to the window
+	_game->window().draw(_cooldownCircle);
 }
 
 void Scene_Touhou::drawHealthHearts(float uiX, float uiY) {
@@ -696,27 +747,27 @@ void Scene_Touhou::drawHealthHearts(float uiX, float uiY) {
 		sprite.setScale(0.7f, 0.7f);
 		sprite.setTextureRect(backgroundToggle ? sf::IntRect(32, 0, 32, 32) : sf::IntRect(0, 0, 32, 32));
 
-		sprite.setPosition(uiX + 64.f + i * 25.f, uiY);
+		sprite.setPosition(uiX + 90.f + i * 24.f, uiY + 19.f);
 		_game->window().draw(sprite);
 	}
 }
 
-void Scene_Touhou::drawSpellCards() {
-	for (auto& e : _entityManager.getEntities("HP")) {
+void Scene_Touhou::drawSpellCards(float uiX, float uiY) {
+	for (auto& e : _entityManager.getEntities("SP")) {
 		auto& sprite = e->getComponent<CSprite>().sprite;
 		int spellCardCount = _player->getComponent<CSpellCard>().spellCardCount;
 
 		for (int i = 0; i < spellCardCount; ++i) {
-			sprite.setScale(0.7f, 0.7f);
+			sprite.setScale(.9f, .9f);
 			sprite.setTextureRect(backgroundToggle ? sf::IntRect(32, 0, 32, 32) : sf::IntRect(0, 0, 32, 32));
-			sprite.setPosition((_spellCardsText.getPosition().x + 128.f) + i * 25.f, _spellCardsText.getPosition().y);
+			sprite.setPosition(uiX + 170.f + i * 29.f, uiY + 14.f);
 			_game->window().draw(sprite);
 		}
 	}
 }
 
 void Scene_Touhou::drawPickups() {
-	for (auto& e : _entityManager.getEntities("Pickup")) {
+	for (auto const& e : _entityManager.getEntities("Pickup")) {
 		drawEntt(e);
 		drawAABB(e);
 	}
@@ -760,7 +811,6 @@ void Scene_Touhou::drawBossEntities() {
 		drawEntt(e);
 		drawAABB(e);
 		drawHP(e);
-		drawAmmo(e);
 	}
 }
 
@@ -772,7 +822,6 @@ void Scene_Touhou::drawEntities() {
 			drawEntt(e);
 			drawAABB(e);
 			drawHP(e);
-			drawAmmo(e);
 		}
 	}
 }
@@ -792,7 +841,7 @@ void Scene_Touhou::drawPauseOverlay() {
 	_pauseMenuText.setFont(Assets::getInstance().getFont("main"));
 	_pauseMenuText.setCharacterSize(30);
 
-	static const sf::Color selectedColor(150, 150, 150);
+	static const sf::Color selectedColor(sf::Color::Yellow);
 	static const sf::Color normalColor(255, 255, 255);
 
 	for (size_t i = 0; i < _pauseMenuOptions.size(); ++i) {
@@ -834,7 +883,7 @@ void Scene_Touhou::drawEndOverlay() {
 	_game->window().draw(_endScreenText);
 
 	// Menu option display
-	static const sf::Color selectedColor(150, 150, 150);
+	static const sf::Color selectedColor(sf::Color::Yellow);
 	static const sf::Color normalColor(255, 255, 255);
 
 	for (size_t i = 0; i < _endScreenOptions.size(); ++i) {
@@ -894,24 +943,6 @@ void Scene_Touhou::drawHP(sPtrEntt e) {
 		auto centerX = left + (right - left) / 2.f;
 		healthBar.setPosition(centerX - (healthBarWidth / 2.f), top + 10.f);
 		_game->window().draw(healthBar);
-	}
-}
-
-void Scene_Touhou::drawAmmo(sPtrEntt e) {
-	// draw ammo count if missiles
-	sf::Text text = sf::Text("M: ", Assets::getInstance().getFont("Arial"), 15);
-
-	if (e->hasComponent<CSpellCard>()) {
-		int count = e->getComponent<CSpellCard>().spellCardCount;
-		std::string str = "M: " + std::to_string(count);
-		text.setString(str);
-		centerOrigin(text);
-
-		sf::Vector2f offset(0.f, 55.f);
-		if (e->getTag() == "enemy")
-			offset *= -1.f;
-		text.setPosition(e->getComponent<CTransform>().pos + offset);
-		_game->window().draw(text);
 	}
 }
 

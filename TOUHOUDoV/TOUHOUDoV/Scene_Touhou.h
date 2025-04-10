@@ -58,9 +58,6 @@ class Scene_Touhou : public Scene
 	sf::Time							bulletMovementTimer{ sf::seconds(0) };
 	sf::Vector2f						bossTargetPosition;
 	bool								isBossMovingToTarget = false;
-	sf::CircleShape						m_expandingCircle;
-	bool								m_isExpandingCircleActive{ false };
-	float								m_expandingCircleSpeed{ 300.f };
 	int									_score{ 0 };
 	int									lastSpreadLevel;
 	int									_lastScoreThreshold = 0;
@@ -69,6 +66,9 @@ class Scene_Touhou : public Scene
 	int									currentColumn = 0;
 	sf::Time							bulletSpawnTimer = sf::Time::Zero;
 	sf::Time							columnSpawnTimer = sf::Time::Zero;
+
+	sf::CircleShape						_cooldownCircle;
+	sf::Time							_backgroundSwitchCooldownMax;
 
 	//UI
 	sf::Text							_scoreText;
@@ -136,12 +136,12 @@ class Scene_Touhou : public Scene
 	void                    drawAABB(std::shared_ptr<Entity> e);
 	void                    drawCameraView();
 	void                    drawHP(sPtrEntt e);
-	void                    drawAmmo(sPtrEntt e);
 	void                    drawEntt(sPtrEntt e);
 	void					playerSize(bool smaller);
 	void drawUI(float uiX, float uiY);
+	void drawCooldownCircle(float uiX, float uiY);
 	void drawHealthHearts(float uiX, float uiY);
-	void drawSpellCards();
+	void drawSpellCards(float uiX, float uiY);
 	void drawPickups();
 	void drawBullets();
 	void drawBossHealthBar();
