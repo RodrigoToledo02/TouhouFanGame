@@ -319,7 +319,7 @@ void Scene_Touhou::sUpdate(sf::Time dt) {
 		_backgroundCooldownText.setString("Soul Sense:    " + std::to_string(cooldownSeconds) + "s");
 
 		float progress = 1.f - (_backgroundSwitchCooldown / _backgroundSwitchCooldownMax);
-		int alphaValue = static_cast<int>(progress * 255.f);
+		auto alphaValue = static_cast<int>(progress * 255.f);
 
 		if (backgroundToggle)
 			_cooldownCircle.setFillColor(sf::Color(0, 0, 0, alphaValue));
@@ -509,22 +509,6 @@ void Scene_Touhou::sDoAction(const Command& command) {
 			_game->toggleViewMode();
 		}
 		else if (
-			command.name() == "QUIT") {
-			onEnd();
-		}
-		else if (
-			command.name() == "BACK") {
-			onEnd();
-		}
-		else if (
-			command.name() == "ZOOMOUT") {
-			_worldView.zoom(1.5);
-		}
-		else if (
-			command.name() == "ZOOMIN") {
-			_worldView.zoom(0.66667);
-		}
-		else if (
 			command.name() == "TOGGLE_TEXTURE") {
 			_drawTextures = !_drawTextures;
 		}
@@ -627,27 +611,12 @@ void Scene_Touhou::sRender() {
 	float uiY = bounds.top + 20.f;
 
 	drawBackground();
-
 	drawUI(uiX, uiY);
-
-	//drawCooldownCircle(uiX, uiY);
-
-	//drawHealthHearts(uiX, uiY);
-
-	//drawSpellCards();
-
-	drawPickups();
-
 	drawBullets();
-
 	drawBossHealthBar();
 	drawBossEntities();
-
 	drawEntities();
-
-	//drawSpellAttack();
-
-	// Draw camera view
+	drawPickups();
 	drawCameraView();
 
 	// Draw pause overlay if paused
@@ -1639,7 +1608,7 @@ void Scene_Touhou::spawnBullet(sf::Vector2f pos, bool isEnemy, const std::string
 
 	// Determine speed and play sound
 	const float speed = isEnemy ? baseSpeed : -baseSpeed;
-	SoundPlayer::getInstance().play(isEnemy ? "EnemyGunfire" : "Damage01", center, 100.f);
+	SoundPlayer::getInstance().play(isEnemy ? "EnemyGunfire" : "Damage01", center, 25.f);
 
 	// Create bullet entity
 	auto bullet = _entityManager.addEntity(isEnemy ? "EnemyBullet" : "PlayerBullet");

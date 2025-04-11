@@ -35,7 +35,7 @@ void GameEngine::setViewMode(ViewMode mode) {
 
 	if (mode == ViewMode::Windowed) {
 		style = sf::Style::Titlebar | sf::Style::Resize | sf::Style::Close;
-		size = { 800, 600 }; // Example size, adjust as needed
+		size = { 1920, 1080 }; // Example size, adjust as needed
 	}
 	else if (mode == ViewMode::Fullscreen) {
 		style = sf::Style::Fullscreen;

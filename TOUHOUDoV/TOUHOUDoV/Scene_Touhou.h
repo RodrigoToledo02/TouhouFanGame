@@ -4,140 +4,142 @@
 #include "Scene.h"
 #include <queue>
 
+//==============================
+// Supporting Structs
+//==============================
+
 struct SpawnPoint {
-	std::string     type;
-	float           y;
-	auto operator<=>(const SpawnPoint& other) const {
-		return  y <=> other.y;
-	}
+	std::string type;
+	float y;
+	auto operator<=>(const SpawnPoint& other) const = default;
 };
 
 struct ViewBounds {
-	float left;
-	float right;
-	float top;
-	float bot;
+	float left, right, top, bot;
 };
 
 struct UIText {
-	//UI
 	sf::Text text;
 	sf::Time lifetime;
 };
 
 struct LevelConfig {
-	float       scrollSpeed{ 100.f };
-	float       playerSpeed{ 200.f };
-	float       enemySpeed{ 200.f };
-	float       bulletSpeed{ 400.f };
-	float       missileSpeed{ 150.f };
-	sf::Time    fireInterval{ sf::seconds(5) };
+	float scrollSpeed{ 100.f };
+	float playerSpeed{ 200.f };
+	float enemySpeed{ 200.f };
+	float bulletSpeed{ 400.f };
+	float missileSpeed{ 150.f };
+	sf::Time fireInterval{ sf::seconds(5) };
 };
 
-class Scene_Touhou : public Scene
-{
-	sPtrEntt                            _player{ nullptr };
-	sf::View                            _worldView; // camera
-	sf::FloatRect                       _worldBounds;
-	LevelConfig                         _config;
-	std::priority_queue<SpawnPoint>     _spawnPoints;
-	bool                                _drawTextures{ true };
-	bool                                _drawAABB{ false };
-	bool                                _drawCam{ false };
-	bool								backgroundToggle{ true };
-	sf::Time							_backgroundSwitchCooldown{ sf::Time::Zero };
-	bool								_isPaused{ false };
-	bool								_endGame{ false };
-	int									_pauseMenuIndex{ 0 };
-	sf::Text							_pauseMenuText;
-	std::vector<std::string>			_pauseMenuOptions{ "Continue", "Quit" };
-	int									_endScreenIndex{ 0 };
-	sf::Text							_endScreenText;
-	std::vector<std::string>			_endScreenOptions{ "Continue", "Finish" };
-	bool								bulletsMoving{ true };
-	sf::Time							bulletMovementTimer{ sf::seconds(0) };
-	sf::Vector2f						bossTargetPosition;
-	bool								isBossMovingToTarget = false;
-	int									_score{ 0 };
-	int									lastSpreadLevel;
-	int									_lastScoreThreshold = 0;
-	bool								bossHasPassed1200{ false };
-	int									bulletIndex = 0;
-	int									currentColumn = 0;
-	sf::Time							bulletSpawnTimer = sf::Time::Zero;
-	sf::Time							columnSpawnTimer = sf::Time::Zero;
+//==============================
+// Scene_Touhou Class
+//==============================
 
-	sf::CircleShape						_cooldownCircle;
-	sf::Time							_backgroundSwitchCooldownMax;
+class Scene_Touhou : public Scene {
+	//==== Core Systems & Entities ====
+	sPtrEntt _player{ nullptr };
+	sf::View _worldView;
+	sf::FloatRect _worldBounds;
+	std::priority_queue<SpawnPoint> _spawnPoints;
+	LevelConfig _config;
 
-	//UI
-	sf::Text							_scoreText;
-	sf::Text							_livesText;
-	sf::Text							_spellCardsText;
-	sf::Text							_parryText;
-	sf::Text							_backgroundCooldownText;
-	std::vector<UIText>					_temporaryTexts;
+	//==== Game State Flags ====
+	bool _drawTextures{ true };
+	bool _drawAABB{ false };
+	bool _drawCam{ false };
+	bool _isPaused{ false };
+	bool _endGame{ false };
+	bool bulletsMoving{ true };
+	bool backgroundToggle{ true };
+	bool bossHasPassed1200{ false };
+	bool isBossMovingToTarget{ false };
 
-	//systems
-	void                    sMovement(sf::Time dt);
-	void                    sSpawnEnemies();
+	//==== Timers ====
+	sf::Time _backgroundSwitchCooldown{ sf::Time::Zero };
+	sf::Time _backgroundSwitchCooldownMax;
+	sf::Time bulletMovementTimer{ sf::seconds(0) };
+	sf::Time bulletSpawnTimer{ sf::Time::Zero };
+	sf::Time columnSpawnTimer{ sf::Time::Zero };
 
-	void                    sCollisions();
-	void                    sUpdate(sf::Time dt);
-	void                    sGunUpdate(sf::Time dt);
-	void					updateBossSpreadLevel(CGun& gun, int bossCurrentHP);
-	void                    sAutoPilot(sf::Time dt);
-	void                    sAnimation(sf::Time dt);
+	//==== Player & Score ====
+	int _score{ 0 };
+	int _lastScoreThreshold = 0;
+	int lastSpreadLevel;
+	sf::Vector2f bossTargetPosition;
 
-	// Movements
+	//==== Bullet Control ====
+	int bulletIndex = 0;
+	int currentColumn = 0;
 
-	void                    movementBoss(sf::Time dt);
+	//==== UI Text ====
+	sf::Text _scoreText;
+	sf::Text _livesText;
+	sf::Text _spellCardsText;
+	sf::Text _parryText;
+	sf::Text _backgroundCooldownText;
+	std::vector<UIText> _temporaryTexts;
 
-	void					movementEnemyBullet(sf::Time dt);
+	//==== Pause Menu ====
+	int _pauseMenuIndex{ 0 };
+	sf::Text _pauseMenuText;
+	std::vector<std::string> _pauseMenuOptions{ "Continue", "Quit" };
 
-	// helper functions
-	void					despawnAllBullets();
-	void                    checkIfDead(sPtrEntt e);
-	void					resetGameState();
+	//==== End Screen ====
+	int _endScreenIndex{ 0 };
+	sf::Text _endScreenText;
+	std::vector<std::string> _endScreenOptions{ "Continue", "Finish" };
 
-	void startGame();
+	//==== Misc ====
+	sf::CircleShape _cooldownCircle;
 
-	void                    checkSpellCardCollision();
-	void                    checkBulletCollision();
-	sf::FloatRect           getBattlefieldBounds() const;
-	void                    destroyOutsideBattlefieldBounds();
-	void					spawnBoss(SpawnPoint sp);
+	//==== Public Interface ====
+public:
+	Scene_Touhou(GameEngine* gameEngine, const std::string& levelPath);
 
-	void handleFiring(CGun& gun, const sf::Vector2f& pos, bool isPlayer, bool isBossEnemy, const std::string& bulletTexture, const std::string& lineTexture, const std::string& pkTexture, const std::string& pcTexture);
+	void update(sf::Time dt) override;
+	void updateView(const sf::Vector2u& size);
+	void sDoAction(const Command& command) override;
+	void sRender() override;
+	void restartGame(const std::string& path);
 
-	void fireSpread0(CGun& gun, const sf::Vector2f& pos, bool isPlayer, bool isBossEnemy, const std::string& bulletTexture, const std::string& pkTexture, const std::string& pcTexture);
+	//==== Update Systems ====
+	void sMovement(sf::Time dt);
+	void sUpdate(sf::Time dt);
+	void sGunUpdate(sf::Time dt);
+	void sCollisions();
+	void sAnimation(sf::Time dt);
+	void sAutoPilot(sf::Time dt);
 
-	void fireSpread1(CGun& gun, const sf::Vector2f& pos, bool isPlayer, bool isBossEnemy, const std::string& pkTexture, const std::string& pcTexture);
+	//==== Movement Functions ====
+	void movementBoss(sf::Time dt);
+	void movementEnemyBullet(sf::Time dt);
+
+	//==== Bullet Fire Systems ====
+	void handleFiring(CGun& gun, const sf::Vector2f& pos, bool isPlayer, bool isBossEnemy,
+		const std::string& bulletTexture, const std::string& lineTexture,
+		const std::string& pkTexture, const std::string& pcTexture);
+
+	void fireSpread0(CGun& gun, const sf::Vector2f& pos, bool isPlayer, bool isBossEnemy,
+		const std::string& bulletTexture, const std::string& pkTexture, const std::string& pcTexture);
+
+	void fireSpread1(CGun& gun, const sf::Vector2f& pos, bool isPlayer, bool isBossEnemy,
+		const std::string& pkTexture, const std::string& pcTexture);
 
 	void fireSpread2(CGun& gun, const sf::Vector2f& pos, bool isBossEnemy, const std::string& lineTexture);
-
 	void fireSpread3(CGun& gun, const sf::Vector2f& pos, bool isBossEnemy, const std::string& bulletTexture);
-
 	void fireSpread4(CGun& gun, const sf::Vector2f& pos, bool isBossEnemy, const std::string& bulletTexture);
-
 	void fireSpread5(CGun& gun, const sf::Vector2f& pos, bool isBossEnemy, const std::string& bulletTexture);
+	void updateBossSpreadLevel(CGun& gun, int bossCurrentHP);
 
-	void                    spawnBullet(sf::Vector2f pos, bool isEnemy, const std::string& spriteName);
-	void trim(std::string& str);
-	void	                registerActions();
-	void                    spawnPlayer(sf::Vector2f pos);
-	void                    playerMovement();
-	void                    animatePlayer();
-	void                    adjustPlayerPosition();
-	void                    init(const std::string& path);
-	void                    loadLevel(const std::string& path);
-	void                    spawnSpellCard();
-	void	                onEnd() override;
-	void                    drawAABB(std::shared_ptr<Entity> e);
-	void                    drawCameraView();
-	void                    drawHP(sPtrEntt e);
-	void                    drawEntt(sPtrEntt e);
-	void					playerSize(bool smaller);
+	//==== Bullet & Enemy Spawn ====
+	void spawnBullet(sf::Vector2f pos, bool isEnemy, const std::string& spriteName);
+	void spawnPlayer(sf::Vector2f pos);
+	void spawnBoss(SpawnPoint sp);
+	void spawnSpellCard();
+	void sSpawnEnemies();
+
+	//==== Draw Functions ====
 	void drawUI(float uiX, float uiY);
 	void drawCooldownCircle(float uiX, float uiY);
 	void drawSpellAttack(float uiX, float uiY);
@@ -149,7 +151,37 @@ class Scene_Touhou : public Scene
 	void drawBossEntities();
 	void drawEntities();
 	void drawBackground();
+	void drawPauseOverlay();
+	void drawEndOverlay();
+	void drawEntt(sPtrEntt e);
+	void drawAABB(std::shared_ptr<Entity> e);
+	void drawCameraView();
+	void drawHP(sPtrEntt e);
 
+	//==== Gameplay Logic ====
+	void fireBullet();
+	void playerMovement();
+	void animatePlayer();
+	void adjustPlayerPosition();
+	void playerSize(bool smaller);
+
+	void resetGameState();
+	void startGame();
+	void checkIfDead(sPtrEntt e);
+	void destroyOutsideBattlefieldBounds();
+	void checkBulletCollision();
+	void checkSpellCardCollision();
+	void despawnAllBullets();
+
+	//==== Utility / Setup ====
+	void init(const std::string& path);
+	void loadLevel(const std::string& path);
+	void onEnd() override;
+	void registerActions();
+	void trim(std::string& str);
+
+	//==== View / Bounds ====
+	sf::FloatRect getBattlefieldBounds() const;
 	ViewBounds getViewBounds() const {
 		sf::Vector2f center = _worldView.getCenter();
 		sf::Vector2f viewHalfSize = _game->windowSize() / 2.f;
@@ -161,18 +193,4 @@ class Scene_Touhou : public Scene
 			center.y + viewHalfSize.y
 		};
 	}
-
-public:
-	Scene_Touhou(GameEngine* gameEngine, const std::string& levelPath);
-	void		            update(sf::Time dt) override;
-	void					updateView(const sf::Vector2u& size);
-
-	void					drawPauseOverlay();
-	void					drawEndOverlay();
-	void		            sDoAction(const Command& command) override;
-
-	void		            sRender() override;
-
-	void                    fireBullet();
-	void					restartGame(const std::string& path);
 };
