@@ -14,6 +14,7 @@ Bkg1 White 0 0
 HP Hearts 0 0
 GB Gb 0 0
 SP SpellCounter 0 0
+ST Stars 0 0
 
 #spawn enemies
 Spawn Boss    200

@@ -130,6 +130,18 @@ void Scene_Menu::sRender()
 		}
 
 		_game->window().draw(m_menuText);
+
+		sf::Text hintText;
+		hintText.setFont(Assets::getInstance().getFont("Venice"));
+		hintText.setCharacterSize(windowSize.y / 35); // smaller size
+		hintText.setFillColor(sf::Color(200, 200, 200)); // light grey
+		hintText.setString("SPACE to select");
+
+		sf::FloatRect hintBounds = hintText.getLocalBounds();
+		hintText.setOrigin(0.f, 0.f); // top-left origin
+		hintText.setPosition(10.f, windowSize.y - hintBounds.height - 30.f); // small padding from bottom
+
+		_game->window().draw(hintText);
 	}
 }
 

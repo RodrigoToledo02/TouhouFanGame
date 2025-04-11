@@ -21,10 +21,12 @@ JSON                ../assets/Textures/WhiteSpell.json
 JSON                ../assets/Textures/Hearts.json
 JSON                ../assets/Textures/GB.json
 JSON				../assets/Textures/SpellCounter.json
+JSON                ../assets/Textures/Stars.json
 
 # Textures
 Texture SpellCounter       ../assets/Textures/SpellCounter.png
 Texture Gb       ../assets/Textures/GB.png
+Texture Stars       ../assets/Textures/Stars.png
 Texture Hearts       ../assets/Textures/Hearts.png
 Texture BlackSpell       ../assets/Textures/BlackSpell.png
 Texture WhiteSpell                ../assets/Textures/WhiteSpell.png
@@ -53,6 +55,7 @@ Sprite background       Black    0 0  1000 2000
 Sprite background       Hearts 0 0 16 16
 Sprite background       Gb 0 0 16 16
 Sprite background       SpellCounter 0 0 16 16
+Sprite background       Stars 0 0 16 16
 
 #
 #  Animation    Name            Texture     Speed   Repeats

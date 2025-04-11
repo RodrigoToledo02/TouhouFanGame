@@ -202,6 +202,15 @@ void Scene_Touhou::loadLevel(const std::string& path) {
 			sprite.setOrigin(0.f, 0.f);
 			sprite.setPosition(pos);
 		}
+		else if (token == "ST") {
+			std::string name;
+			sf::Vector2f pos;
+			config >> name >> pos.x >> pos.y;
+			auto e = _entityManager.addEntity("ST");
+			auto& sprite = e->addComponent<CSprite>(Assets::getInstance().getTexture(name)).sprite;
+			sprite.setOrigin(0.f, 0.f);
+			sprite.setPosition(pos);
+		}
 		else if (token == "World") {
 			config >> _worldBounds.width >> _worldBounds.height;
 		}
@@ -353,18 +362,12 @@ void Scene_Touhou::trim(std::string& str)
 }
 
 void Scene_Touhou::registerActions() {
-	registerAction(sf::Keyboard::I, "SKIP");
-	registerAction(sf::Keyboard::O, "ZOOMIN");
 	registerAction(sf::Keyboard::F11, "TOGGLE_VIEW_MODE");
+	registerAction(sf::Keyboard::F5, "TOGGLE_COLLISION");
+	registerAction(sf::Keyboard::F6, "TOGGLE_TEXTURE");
+	registerAction(sf::Keyboard::F7, "TOGGLE_CAMOUTLINE");
 
 	registerAction(sf::Keyboard::Escape, "PAUSE");
-	registerAction(sf::Keyboard::P, "BACK");
-	registerAction(sf::Keyboard::Q, "QUIT");
-
-	registerAction(sf::Keyboard::B, "TOGGLE_COLLISION");
-	registerAction(sf::Keyboard::T, "TOGGLE_TEXTURE");
-	registerAction(sf::Keyboard::V, "TOGGLE_CAMOUTLINE");
-
 	registerAction(sf::Keyboard::A, "LEFT");
 	registerAction(sf::Keyboard::D, "RIGHT");
 	registerAction(sf::Keyboard::W, "UP");
@@ -642,6 +645,8 @@ void Scene_Touhou::sRender() {
 
 	drawEntities();
 
+	//drawSpellAttack();
+
 	// Draw camera view
 	drawCameraView();
 
@@ -718,6 +723,7 @@ void Scene_Touhou::drawUI(float uiX, float uiY) {
 	drawHealthHearts(uiX, uiY + 90.f);
 	drawSpellCards(uiX, uiY + 130.f);
 	drawCooldownCircle(uiX, uiY + 170.f);
+	drawSpellAttack(uiX, uiY + 200);
 }
 
 void Scene_Touhou::drawCooldownCircle(float uiX, float uiY) {
@@ -726,6 +732,71 @@ void Scene_Touhou::drawCooldownCircle(float uiX, float uiY) {
 
 	// Draw the circle to the window
 	_game->window().draw(_cooldownCircle);
+}
+
+void Scene_Touhou::drawSpellAttack(float uiX, float uiY) {
+	auto bounds = getViewBounds();
+
+	for (auto const& e : _entityManager.getEntities("bossEnemy")) {
+		for (auto& s : _entityManager.getEntities("ST")) {
+			auto& centerSprite = s->getComponent<CSprite>().sprite;
+			auto& smallSprite = s->getComponent<CSprite>().sprite;
+
+			if (e->hasComponent<CGun>()) {
+				auto& gun = e->getComponent<CGun>();
+				int spread = gun.spreadLevel;
+
+				// Set heart sprite and draw
+				centerSprite.setTextureRect(backgroundToggle ? sf::IntRect(32, 32, 32, 32) : sf::IntRect(0, 32, 32, 32));
+				sf::Vector2f centerPos = { uiX + 250.f, uiY + 300.f };
+				centerSprite.setPosition(centerPos);
+				centerSprite.setScale(1.5f, 1.5f);
+				_game->window().draw(centerSprite);
+
+				// Draw spread level number text under the sprite
+
+				std::map<int, std::string> spreadNames = {
+					{0, "The Beginning"},
+					{1, "Twin Shots"},
+					{2, "Falling Towers"},
+					{3, "Dancing Lotus"},
+					{4, "Heaven’s Rain"},
+					{5, "Chaos Burst"}
+				};
+
+				std::string spreadLabel = spreadNames.count(spread) ? spreadNames.at(spread) : "Unknown";
+
+				sf::Text spreadText;
+				spreadText.setFont(Assets::getInstance().getFont("Venice"));
+				spreadText.setCharacterSize(80);
+				spreadText.setFillColor(backgroundToggle ? sf::Color::Black : sf::Color::White);
+				spreadText.setString(spreadLabel);
+				spreadText.setPosition(
+					uiX + 100.f,
+					uiY + centerSprite.getGlobalBounds().height + 5.f
+				);
+				_game->window().draw(spreadText);
+
+				// Draw surrounding sprites in a circle formation
+				float radius = 50.f;
+				for (int i = 0; i < spread; ++i) {
+					float angle = (2 * 3.1416 / spread) * i;
+					float x = centerPos.x + radius * std::cos(angle);
+					float y = centerPos.y + radius * std::sin(angle);
+					float m_rotationAngle = 0.f;
+					m_rotationAngle += 50.f; // degrees per frame
+					if (m_rotationAngle > 360.f) m_rotationAngle -= 360.f;
+
+					smallSprite.setTextureRect(backgroundToggle ? sf::IntRect(32, 32, 32, 32) : sf::IntRect(0, 32, 32, 32));
+					smallSprite.setOrigin(8.f, 8.f); // center the sprite
+					smallSprite.setPosition(x, y);
+					smallSprite.setScale(1.f, 1.f);
+					smallSprite.setRotation(m_rotationAngle);
+					_game->window().draw(smallSprite);
+				}
+			}
+		}
+	}
 }
 
 void Scene_Touhou::drawHealthHearts(float uiX, float uiY) {
@@ -1820,7 +1891,6 @@ void Scene_Touhou::checkSpellCardCollision() {
 		for (auto& s : _entityManager.getEntities("spellCard")) {
 			auto overlap1 = Physics::getOverlap(s, bullet);
 			if (overlap1.x > 0 && overlap1.y > 0) {
-				std::cout << "Bullet destroyed\n";
 				bullet->destroy();
 			}
 		}

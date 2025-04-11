@@ -140,6 +140,7 @@ class Scene_Touhou : public Scene
 	void					playerSize(bool smaller);
 	void drawUI(float uiX, float uiY);
 	void drawCooldownCircle(float uiX, float uiY);
+	void drawSpellAttack(float uiX, float uiY);
 	void drawHealthHearts(float uiX, float uiY);
 	void drawSpellCards(float uiX, float uiY);
 	void drawPickups();
